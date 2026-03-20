@@ -1,3 +1,4 @@
+// Generated from CodeGenSpecs/Macros-StructuredOutput.md — Do not edit manually. Update spec and re-generate.
 import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxBuilder

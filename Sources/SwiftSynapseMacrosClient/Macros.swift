@@ -1,3 +1,4 @@
+// Generated from CodeGenSpecs/Overview.md — Do not edit manually. Update spec and re-generate.
 @_exported import SwiftLLMToolMacros
 @_exported import SwiftResponsesDSL
 

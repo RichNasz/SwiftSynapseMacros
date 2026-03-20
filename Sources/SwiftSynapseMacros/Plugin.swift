@@ -1,3 +1,4 @@
+// Generated from CodeGenSpecs/Overview.md — Do not edit manually. Update spec and re-generate.
 import SwiftCompilerPlugin
 import SwiftSyntaxMacros
 

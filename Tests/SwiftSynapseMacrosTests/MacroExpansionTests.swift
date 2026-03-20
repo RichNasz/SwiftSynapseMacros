@@ -1,3 +1,4 @@
+// Generated from CodeGenSpecs/Tests.md — Do not edit manually. Update spec and re-generate.
 import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
 import XCTest

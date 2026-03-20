@@ -1,3 +1,4 @@
+// Generated from CodeGenSpecs/Client-Types.md — Do not edit manually. Update spec and re-generate.
 import Observation
 
 @Observable
