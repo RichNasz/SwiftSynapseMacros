@@ -52,11 +52,9 @@ public struct SpecDrivenAgentMacro: MemberMacro {
                 }
                 _status = .running
                 do {
-                    let response = try await client.chat(model: "gpt-4o", message: message)
-                    let result = response.assistantMessages.first?.content.first.flatMap {
-                        if case .text(let text) = $0 { return text }
-                        return nil
-                    } ?? ""
+                    let request = ResponseRequest(model: "gpt-4o", input: [.message(.user(message))])
+                    let response = try await client.send(request)
+                    let result = response.firstOutputText ?? ""
                     _transcript.append(TranscriptEntry(role: .user, content: message))
                     _transcript.append(TranscriptEntry(role: .assistant, content: result))
                     _status = .completed

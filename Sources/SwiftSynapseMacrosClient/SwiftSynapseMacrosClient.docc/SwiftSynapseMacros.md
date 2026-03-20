@@ -14,7 +14,7 @@ Macro-powered orchestration layer for SwiftSynapse agents.
 
 ## Overview
 
-SwiftSynapseMacros provides Swift macros that generate boilerplate for LLM agent orchestration. It bridges SwiftResponsesDSL's LLM client and SwiftLLMToolMacros' tool definitions into observable, status-tracked agent actors.
+SwiftSynapseMacros provides Swift macros that generate boilerplate for LLM agent orchestration. It bridges SwiftOpenResponsesDSL's LLM client and SwiftLLMToolMacros' tool definitions into observable, status-tracked agent actors.
 
 - **Status Tracking**: `@SpecDrivenAgent` generates a `Status` enum and observable state for every agent actor
 - **Transcript Observability**: Agents automatically accumulate `[TranscriptEntry]` conversation history, with `ObservableTranscript` for SwiftUI

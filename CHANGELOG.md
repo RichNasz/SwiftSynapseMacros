@@ -18,4 +18,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `ObservableTranscript` class: `@Observable` wrapper for SwiftUI transcript binding
 - Compile-time diagnostics for macro misuse (wrong declaration kind)
 - Spec-driven development structure with `CodeGenSpecs/` as source of truth
-- Re-export of SwiftResponsesDSL and SwiftLLMToolMacros via `@_exported import`
+- Re-export of SwiftOpenResponsesDSL and SwiftLLMToolMacros via `@_exported import`

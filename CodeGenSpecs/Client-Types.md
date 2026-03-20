@@ -22,17 +22,17 @@ The client target (`SwiftSynapseMacrosClient`) provides:
 A simple value type wrapping a conversation role and content string.
 
 ```swift
-import SwiftResponsesDSL
+import SwiftOpenResponsesDSL
 
 public struct TranscriptEntry: Sendable {
-    public let role: Role        // from SwiftResponsesDSL
+    public let role: Role        // from SwiftOpenResponsesDSL
     public let content: String
 
     public init(role: Role, content: String)
 }
 ```
 
-**Dependencies:** `Role` from `SwiftResponsesDSL`
+**Dependencies:** `Role` from `SwiftOpenResponsesDSL`
 
 ---
 
@@ -130,7 +130,7 @@ Contains `#externalMacro` declarations and re-exports.
 
 ```swift
 @_exported import SwiftLLMToolMacros
-@_exported import SwiftResponsesDSL
+@_exported import SwiftOpenResponsesDSL
 
 @attached(member, names: ...) public macro SpecDrivenAgent() = #externalMacro(...)
 @attached(member, names: ...) public macro StructuredOutput() = #externalMacro(...)

@@ -1,6 +1,6 @@
 # Integration Guide
 
-How SwiftSynapseMacros bridges SwiftResponsesDSL and SwiftLLMToolMacros.
+How SwiftSynapseMacros bridges SwiftOpenResponsesDSL and SwiftLLMToolMacros.
 
 ## Overview
 
@@ -11,12 +11,12 @@ SwiftSynapseMacros sits at the top of the SwiftSynapse ecosystem, combining two 
 ```
 SwiftSynapseMacros
     |
-    +-- SwiftResponsesDSL      (LLM client, responses, roles)
+    +-- SwiftOpenResponsesDSL      (LLM client, responses, roles)
     |
     +-- SwiftLLMToolMacros     (tool definitions, JSON schemas)
 ```
 
-- **SwiftResponsesDSL** provides `LLMClient` (the actor that communicates with LLM APIs), `Response`, `Role`, and message types.
+- **SwiftOpenResponsesDSL** provides `LLMClient` (the actor that communicates with LLM APIs), `Response`, `Role`, and message types.
 - **SwiftLLMToolMacros** provides `@LLMTool` and `@LLMToolArguments` macros for generating tool definitions and JSON schemas, plus `ToolDefinition`, `JSONSchemaValue`, and protocol types.
 - **SwiftSynapseMacros** bridges these into agent-level abstractions with `@SpecDrivenAgent`, `@StructuredOutput`, and `@Capability`.
 
@@ -26,7 +26,7 @@ The client target (`SwiftSynapseMacrosClient`) uses `@_exported import` for both
 
 ```swift
 @_exported import SwiftLLMToolMacros
-@_exported import SwiftResponsesDSL
+@_exported import SwiftOpenResponsesDSL
 ```
 
 This means importing `SwiftSynapseMacrosClient` gives you access to all types from all three packages. You don't need separate import statements.
@@ -35,7 +35,7 @@ This means importing `SwiftSynapseMacrosClient` gives you access to all types fr
 
 ### LLMClient to Agent
 
-`@SpecDrivenAgent` generates a `client: LLMClient?` property. The `LLMClient` type comes from SwiftResponsesDSL. Inject it before calling `run(_:)`:
+`@SpecDrivenAgent` generates a `client: LLMClient?` property. The `LLMClient` type comes from SwiftOpenResponsesDSL. Inject it before calling `run(_:)`:
 
 ```swift
 import SwiftSynapseMacrosClient

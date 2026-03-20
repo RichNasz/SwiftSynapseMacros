@@ -2,7 +2,7 @@
 
 ## Overview
 
-SwiftSynapseMacros is the macro-powered orchestration layer for the SwiftSynapse ecosystem. It provides Swift macros (`@SpecDrivenAgent`, `@StructuredOutput`, `@Capability`) that generate boilerplate for agent orchestration, bridging SwiftResponsesDSL's LLM client and SwiftLLMToolMacros' tool definitions into a cohesive, observable agent architecture.
+SwiftSynapseMacros is the macro-powered orchestration layer for the SwiftSynapse ecosystem. It provides Swift macros (`@SpecDrivenAgent`, `@StructuredOutput`, `@Capability`) that generate boilerplate for agent orchestration, bridging SwiftOpenResponsesDSL's LLM client and SwiftLLMToolMacros' tool definitions into a cohesive, observable agent architecture.
 
 ## Core Goals
 
@@ -24,7 +24,7 @@ SwiftSynapseMacros is the macro-powered orchestration layer for the SwiftSynapse
 |---------|---------|
 | `swift-syntax` 602.0.0+ | SwiftSyntax for macro implementation |
 | `SwiftLLMToolMacros` (branch: main) | `LLMTool`, `LLMToolArguments`, `ToolDefinition`, `JSONSchemaValue` |
-| `SwiftResponsesDSL` (branch: main) | `LLMClient`, `Response`, `Role`, message types |
+| `SwiftOpenResponsesDSL` (branch: main) | `LLMClient`, `Response`, `Role`, message types |
 
 ## Platforms
 

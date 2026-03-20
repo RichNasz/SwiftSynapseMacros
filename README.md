@@ -6,7 +6,7 @@ Macro-powered orchestration layer for SwiftSynapse agents.
 
 ## Overview
 
-SwiftSynapseMacros provides Swift macros that generate boilerplate for LLM agent orchestration. It bridges SwiftResponsesDSL's LLM client and SwiftLLMToolMacros' tool definitions into observable, status-tracked agent actors.
+SwiftSynapseMacros provides Swift macros that generate boilerplate for LLM agent orchestration. It bridges SwiftOpenResponsesDSL's LLM client and SwiftLLMToolMacros' tool definitions into observable, status-tracked agent actors.
 
 ## Requirements
 
@@ -75,6 +75,6 @@ struct MyTools {
 
 | Package | Purpose |
 |---------|---------|
-| [SwiftResponsesDSL](https://github.com/RichNasz/SwiftResponsesDSL) | LLM client, response types, roles |
+| [SwiftOpenResponsesDSL](https://github.com/RichNasz/SwiftOpenResponsesDSL) | LLM client, response types, roles |
 | [SwiftLLMToolMacros](https://github.com/RichNasz/SwiftLLMToolMacros) | Tool definitions, JSON schema, `@LLMTool` macro |
 | [swift-syntax](https://github.com/swiftlang/swift-syntax) | Macro implementation infrastructure |

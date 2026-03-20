@@ -1,7 +1,7 @@
 // Generated strictly from CodeGenSpecs/Overview.md + Overview.md
 // Do not edit manually — update the corresponding spec file and re-generate
 @_exported import SwiftLLMToolMacros
-@_exported import SwiftResponsesDSL
+@_exported import SwiftOpenResponsesDSL
 
 /// Generates an agent scaffold with status tracking, LLMClient wrapper, transcript, and run loop.
 /// Attach to an `actor` declaration.

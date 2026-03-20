@@ -5,7 +5,7 @@
 SwiftSynapseMacros is a Swift macro package that generates code at compile time. Security concerns for this project include:
 
 - **Macro-generated code safety**: Ensuring generated code does not introduce vulnerabilities (injection, unsafe memory access, etc.)
-- **Dependency vulnerabilities**: Issues in swift-syntax, SwiftLLMToolMacros, or SwiftResponsesDSL that could affect this package
+- **Dependency vulnerabilities**: Issues in swift-syntax, SwiftLLMToolMacros, or SwiftOpenResponsesDSL that could affect this package
 - **Spec integrity**: Ensuring spec files cannot be manipulated to produce unsafe generated code
 
 ## Supported Versions

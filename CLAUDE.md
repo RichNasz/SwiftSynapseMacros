@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-SwiftSynapseMacros is the macro-powered orchestration layer for the SwiftSynapse ecosystem. It provides Swift macros (`@SpecDrivenAgent`, `@StructuredOutput`, `@Capability`) that generate boilerplate for LLM agent orchestration, bridging SwiftResponsesDSL's LLM client and SwiftLLMToolMacros' tool definitions into observable, status-tracked agent actors.
+SwiftSynapseMacros is the macro-powered orchestration layer for the SwiftSynapse ecosystem. It provides Swift macros (`@SpecDrivenAgent`, `@StructuredOutput`, `@Capability`) that generate boilerplate for LLM agent orchestration, bridging SwiftOpenResponsesDSL's LLM client and SwiftLLMToolMacros' tool definitions into observable, status-tracked agent actors.
 
 ## Commands
 
@@ -36,7 +36,7 @@ SwiftSynapseMacros is the macro-powered orchestration layer for the SwiftSynapse
 ### Key Design Decisions
 
 - **Macro target is SwiftSyntax-only**: The compiler plugin cannot import sibling packages. It generates code strings that reference types from the client target.
-- **Client re-exports siblings**: `@_exported import SwiftLLMToolMacros` and `@_exported import SwiftResponsesDSL` so consumers only need to import `SwiftSynapseMacrosClient`.
+- **Client re-exports siblings**: `@_exported import SwiftLLMToolMacros` and `@_exported import SwiftOpenResponsesDSL` so consumers only need to import `SwiftSynapseMacrosClient`.
 - **Diagnostics**: Each macro has a diagnostic enum conforming to `SwiftDiagnostics.DiagnosticMessage`.
 - **Actor-only agents**: `@SpecDrivenAgent` enforces `actor` declarations at compile time.
 
@@ -92,8 +92,8 @@ Types referenced in macro-generated code come from different packages:
 | `TextFormat` | SwiftSynapseMacrosClient |
 | `SwiftSynapseError` | SwiftSynapseMacrosClient |
 | `ObservableTranscript` | SwiftSynapseMacrosClient |
-| `LLMClient` | SwiftResponsesDSL (re-exported) |
-| `Role` | SwiftResponsesDSL (re-exported) |
+| `LLMClient` | SwiftOpenResponsesDSL (re-exported) |
+| `Role` | SwiftOpenResponsesDSL (re-exported) |
 | `ToolDefinition` | SwiftLLMToolMacros (re-exported) |
 | `LLMTool` | SwiftLLMToolMacros (re-exported) |
 | `JSONSchemaValue` | SwiftLLMToolMacros (re-exported) |
@@ -102,7 +102,7 @@ Types referenced in macro-generated code come from different packages:
 
 - [swift-syntax](https://github.com/swiftlang/swift-syntax) >= 602.0.0
 - [SwiftLLMToolMacros](https://github.com/RichNasz/SwiftLLMToolMacros) (branch: main)
-- [SwiftResponsesDSL](https://github.com/RichNasz/SwiftResponsesDSL) (branch: main)
+- [SwiftOpenResponsesDSL](https://github.com/RichNasz/SwiftOpenResponsesDSL) (branch: main)
 
 ## Requirements
 

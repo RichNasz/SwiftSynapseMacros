@@ -37,7 +37,7 @@ let package = Package(
 )
 ```
 
-Importing `SwiftSynapseMacrosClient` also gives you access to SwiftResponsesDSL and SwiftLLMToolMacros types via re-exports.
+Importing `SwiftSynapseMacrosClient` also gives you access to SwiftOpenResponsesDSL and SwiftLLMToolMacros types via re-exports.
 
 ## Create an Agent
 
@@ -59,7 +59,7 @@ actor ResearchAgent {
 
 ## Inject an LLM Client
 
-Before calling `run(_:)`, set the agent's `client` property with an `LLMClient` from SwiftResponsesDSL:
+Before calling `run(_:)`, set the agent's `client` property with an `LLMClient` from SwiftOpenResponsesDSL:
 
 ```swift
 let agent = ResearchAgent()

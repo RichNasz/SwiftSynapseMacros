@@ -1,6 +1,6 @@
 // Generated strictly from CodeGenSpecs/Client-Types.md + Overview.md
 // Do not edit manually — update the corresponding spec file and re-generate
-import SwiftResponsesDSL
+import SwiftOpenResponsesDSL
 
 public struct TranscriptEntry: Sendable {
     public let role: Role
