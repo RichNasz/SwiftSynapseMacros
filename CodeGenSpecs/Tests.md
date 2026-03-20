@@ -34,6 +34,8 @@ All test methods are wrapped in `#if canImport(SwiftSynapseMacros)` with a fallb
 |------|-------|----------|
 | `testSpecDrivenAgentExpandsOnActor` | `@SpecDrivenAgent actor MyAgent {}` | All generated members (Status enum, properties, run method) |
 | `testSpecDrivenAgentDiagnosesStruct` | `@SpecDrivenAgent struct NotAnActor {}` | No expansion, diagnostic: `"@SpecDrivenAgent can only be applied to an actor"` at line 1, column 1 |
+| `testSpecDrivenAgentDiagnosesClass` | `@SpecDrivenAgent class NotAnActor {}` | No expansion, diagnostic: `"@SpecDrivenAgent can only be applied to an actor"` at line 1, column 1 |
+| `testSpecDrivenAgentUsesActorName` | `@SpecDrivenAgent actor CustomBot {}` | All generated members use "CustomBot" naming (verifies name isn't hardcoded) |
 
 **Note:** SwiftSyntax reformats single-line closures to multi-line in expansion output. The expected expansion strings must account for this formatting.
 
@@ -42,12 +44,17 @@ All test methods are wrapped in `#if canImport(SwiftSynapseMacros)` with a fallb
 | Test | Input | Expected |
 |------|-------|----------|
 | `testStructuredOutputExpandsOnStruct` | `@StructuredOutput struct Response {}` | `static var textFormat: TextFormat { .jsonSchema(name: "Response", schema: Self.jsonSchema, strict: true) }` |
+| `testStructuredOutputDiagnosesClass` | `@StructuredOutput class NotAStruct {}` | No expansion, diagnostic: `"@StructuredOutput can only be applied to a struct"` at line 1, column 1 |
+| `testStructuredOutputDiagnosesEnum` | `@StructuredOutput enum NotAStruct {}` | No expansion, diagnostic: `"@StructuredOutput can only be applied to a struct"` at line 1, column 1 |
 
 ### @Capability
 
 | Test | Input | Expected |
 |------|-------|----------|
 | `testCapabilityExpandsOnStruct` | `@Capability struct Tools {}` | `func agentTools() -> [AgentTool] { [] }` with TODO comment |
+| `testCapabilityExpandsOnClass` | `@Capability class Tools {}` | `func agentTools() -> [AgentTool] { [] }` with TODO comment |
+| `testCapabilityDiagnosesActor` | `@Capability actor Foo {}` | No expansion, diagnostic: `"@Capability can only be applied to a struct or class"` at line 1, column 1 |
+| `testCapabilityDiagnosesEnum` | `@Capability enum Foo {}` | No expansion, diagnostic: `"@Capability can only be applied to a struct or class"` at line 1, column 1 |
 
 ## Expansion Verification Notes
 
