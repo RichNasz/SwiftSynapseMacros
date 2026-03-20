@@ -1,4 +1,5 @@
-// Generated from CodeGenSpecs/Overview.md — Do not edit manually. Update spec and re-generate.
+// Generated strictly from CodeGenSpecs/Overview.md + Overview.md
+// Do not edit manually — update the corresponding spec file and re-generate
 import SwiftCompilerPlugin
 import SwiftSyntaxMacros
 
