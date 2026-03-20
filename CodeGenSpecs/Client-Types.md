@@ -1,7 +1,6 @@
 # Spec: Client Types
 
 **Generates:**
-- `Sources/SwiftSynapseMacrosClient/TranscriptEntry.swift`
 - `Sources/SwiftSynapseMacrosClient/AgentTool.swift`
 - `Sources/SwiftSynapseMacrosClient/TextFormat.swift`
 - `Sources/SwiftSynapseMacrosClient/SwiftSynapseError.swift`
@@ -19,20 +18,7 @@ The client target (`SwiftSynapseMacrosClient`) provides:
 
 ## TranscriptEntry
 
-A simple value type wrapping a conversation role and content string.
-
-```swift
-import SwiftOpenResponsesDSL
-
-public struct TranscriptEntry: Sendable {
-    public let role: Role        // from SwiftOpenResponsesDSL
-    public let content: String
-
-    public init(role: Role, content: String)
-}
-```
-
-**Dependencies:** `Role` from `SwiftOpenResponsesDSL`
+`TranscriptEntry` is provided by `SwiftOpenResponsesDSL` and re-exported via `@_exported import`. It is an enum with cases like `.userMessage(String)`, `.assistantMessage(String)`, etc. No local definition is needed.
 
 ---
 

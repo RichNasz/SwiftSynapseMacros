@@ -56,7 +56,6 @@ actor MyAgent {
 - ``Capability()``
 
 ### Orchestration Types
-- ``TranscriptEntry``
 - ``AgentTool``
 - ``TextFormat``
 - ``SwiftSynapseError``

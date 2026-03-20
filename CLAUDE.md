@@ -24,7 +24,6 @@ SwiftSynapseMacros is the macro-powered orchestration layer for the SwiftSynapse
 
 2. **SwiftSynapseMacrosClient** (client target) - Public API that users import
    - `Macros.swift` - `#externalMacro` declarations + `@_exported import` of siblings
-   - `TranscriptEntry.swift` - Role + content conversation wrapper
    - `AgentTool.swift` - Bridges `ToolDefinition` / `LLMTool`
    - `TextFormat.swift` - `.jsonSchema` / `.text` output format enum
    - `SwiftSynapseError.swift` - Error cases for orchestration
@@ -62,7 +61,6 @@ Sources/
     CapabilityMacro.swift            # @Capability implementation
   SwiftSynapseMacrosClient/         # Public API
     Macros.swift                     # #externalMacro declarations + re-exports
-    TranscriptEntry.swift            # Role + content wrapper
     AgentTool.swift                  # Tool bridging type
     TextFormat.swift                 # Output format enum
     SwiftSynapseError.swift          # Error type
@@ -87,7 +85,7 @@ Types referenced in macro-generated code come from different packages:
 
 | Type | Source Package |
 |------|---------------|
-| `TranscriptEntry` | SwiftSynapseMacrosClient |
+| `TranscriptEntry` | SwiftOpenResponsesDSL (re-exported) |
 | `AgentTool` | SwiftSynapseMacrosClient |
 | `TextFormat` | SwiftSynapseMacrosClient |
 | `SwiftSynapseError` | SwiftSynapseMacrosClient |

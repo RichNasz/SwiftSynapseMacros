@@ -59,11 +59,11 @@ final class MacroExpansionTests: XCTestCase {
                     }
                     _status = .running
                     do {
-                        let request = ResponseRequest(model: "gpt-4o", input: [.message(.user(message))])
+                        let request = try ResponseRequest(model: "gpt-4o", text: message)
                         let response = try await client.send(request)
                         let result = response.firstOutputText ?? ""
-                        _transcript.append(TranscriptEntry(role: .user, content: message))
-                        _transcript.append(TranscriptEntry(role: .assistant, content: result))
+                        _transcript.append(.userMessage(message))
+                        _transcript.append(.assistantMessage(result))
                         _status = .completed
                         return result
                     } catch {
@@ -153,11 +153,11 @@ final class MacroExpansionTests: XCTestCase {
                     }
                     _status = .running
                     do {
-                        let request = ResponseRequest(model: "gpt-4o", input: [.message(.user(message))])
+                        let request = try ResponseRequest(model: "gpt-4o", text: message)
                         let response = try await client.send(request)
                         let result = response.firstOutputText ?? ""
-                        _transcript.append(TranscriptEntry(role: .user, content: message))
-                        _transcript.append(TranscriptEntry(role: .assistant, content: result))
+                        _transcript.append(.userMessage(message))
+                        _transcript.append(.assistantMessage(result))
                         _status = .completed
                         return result
                     } catch {

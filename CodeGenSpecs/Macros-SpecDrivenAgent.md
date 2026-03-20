@@ -36,15 +36,15 @@ public macro SpecDrivenAgent() = #externalMacro(module: "SwiftSynapseMacros", ty
 
 1. Guard that `client` is non-nil, otherwise throw `SwiftSynapseError.clientNotInjected`
 2. Set `_status = .running`
-3. Create `ResponseRequest(model: "gpt-4o", input: [.message(.user(message))])` and call `client.send(request)`
+3. Create `try ResponseRequest(model: "gpt-4o", text: message)` and call `client.send(request)`
 4. Extract text via `response.firstOutputText`
-5. Append user and assistant `TranscriptEntry` to `_transcript`
+5. Append `.userMessage(message)` and `.assistantMessage(result)` to `_transcript`
 6. Set `_status = .completed`, return result
 7. On error: set `_status = .failed`, rethrow
 
 ## Dependencies (Referenced Types)
 
-- `TranscriptEntry` — from `SwiftSynapseMacrosClient`
+- `TranscriptEntry` — from `SwiftOpenResponsesDSL` (re-exported by client)
 - `LLMClient` — from `SwiftOpenResponsesDSL` (re-exported by client)
 - `SwiftSynapseError` — from `SwiftSynapseMacrosClient`
 
