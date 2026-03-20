@@ -32,10 +32,10 @@ All test methods are wrapped in `#if canImport(SwiftSynapseMacros)` with a fallb
 
 | Test | Input | Expected |
 |------|-------|----------|
-| `testSpecDrivenAgentExpandsOnActor` | `@SpecDrivenAgent actor MyAgent {}` | All generated members (Status enum, properties, run method) |
+| `testSpecDrivenAgentExpandsOnActor` | `@SpecDrivenAgent actor MyAgent {}` | All generated members (Status enum, properties, client) |
 | `testSpecDrivenAgentDiagnosesStruct` | `@SpecDrivenAgent struct NotAnActor {}` | No expansion, diagnostic: `"@SpecDrivenAgent can only be applied to an actor"` at line 1, column 1 |
 | `testSpecDrivenAgentDiagnosesClass` | `@SpecDrivenAgent class NotAnActor {}` | No expansion, diagnostic: `"@SpecDrivenAgent can only be applied to an actor"` at line 1, column 1 |
-| `testSpecDrivenAgentUsesActorName` | `@SpecDrivenAgent actor CustomBot {}` | All generated members use "CustomBot" naming (verifies name isn't hardcoded) |
+| `testSpecDrivenAgentUsesActorName` | `@SpecDrivenAgent actor CustomBot {}` | All generated members (verifies expansion works with different actor names) |
 
 **Note:** SwiftSyntax reformats single-line closures to multi-line in expansion output. The expected expansion strings must account for this formatting.
 

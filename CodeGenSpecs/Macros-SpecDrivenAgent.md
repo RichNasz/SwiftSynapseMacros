@@ -4,13 +4,13 @@
 
 ## Purpose
 
-Attach to an `actor` declaration to generate a complete agent scaffold with status tracking, LLM client wrapper, conversation transcript, and a `run(_:)` method.
+Attach to an `actor` declaration to generate a complete agent scaffold with status tracking, LLM client wrapper, and conversation transcript.
 
 ## Macro Declaration
 
 ```swift
-@attached(member, names: named(Status), named(_status), named(_transcript), named(_dslAgent),
-          named(status), named(isRunning), named(transcript), named(client), named(run))
+@attached(member, names: named(Status), named(_status), named(_transcript),
+          named(status), named(isRunning), named(transcript), named(client))
 public macro SpecDrivenAgent() = #externalMacro(module: "SwiftSynapseMacros", type: "SpecDrivenAgentMacro")
 ```
 
@@ -25,28 +25,15 @@ public macro SpecDrivenAgent() = #externalMacro(module: "SwiftSynapseMacros", ty
 | `Status` | enum | `String, Sendable` | internal | Cases: `idle`, `running`, `completed`, `failed` |
 | `_status` | stored property | `Status` | `private` | Initial value: `.idle` |
 | `_transcript` | stored property | `[TranscriptEntry]` | `private` | Initial value: `[]` |
-| `_dslAgent` | stored property | `LLMClient?` | `private` | Initial value: `nil` |
 | `status` | computed property | `Status` | internal | Returns `_status` |
 | `isRunning` | computed property | `Bool` | internal | Returns `_status == .running` |
 | `transcript` | computed property | `[TranscriptEntry]` | internal | Returns `_transcript` |
 | `client` | stored property | `LLMClient?` | internal | Injected client |
-| `run(_:)` | method | `async throws -> String` | internal | Sends message via client, appends to transcript, manages status |
-
-## `run(_:)` Method Behavior
-
-1. Guard that `client` is non-nil, otherwise throw `SwiftSynapseError.clientNotInjected`
-2. Set `_status = .running`
-3. Create `try ResponseRequest(model: "gpt-4o", text: message)` and call `client.send(request)`
-4. Extract text via `response.firstOutputText`
-5. Append `.userMessage(message)` and `.assistantMessage(result)` to `_transcript`
-6. Set `_status = .completed`, return result
-7. On error: set `_status = .failed`, rethrow
 
 ## Dependencies (Referenced Types)
 
 - `TranscriptEntry` — from `SwiftOpenResponsesDSL` (re-exported by client)
 - `LLMClient` — from `SwiftOpenResponsesDSL` (re-exported by client)
-- `SwiftSynapseError` — from `SwiftSynapseMacrosClient`
 
 ## Diagnostic
 

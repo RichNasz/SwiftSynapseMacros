@@ -3,9 +3,9 @@
 @_exported import SwiftLLMToolMacros
 @_exported import SwiftOpenResponsesDSL
 
-/// Generates an agent scaffold with status tracking, LLMClient wrapper, transcript, and run loop.
+/// Generates an agent scaffold with status tracking, LLMClient wrapper, and transcript.
 /// Attach to an `actor` declaration.
-@attached(member, names: named(Status), named(_status), named(_transcript), named(_dslAgent), named(status), named(isRunning), named(transcript), named(client), named(run))
+@attached(member, names: named(Status), named(_status), named(_transcript), named(status), named(isRunning), named(transcript), named(client))
 public macro SpecDrivenAgent() = #externalMacro(module: "SwiftSynapseMacros", type: "SpecDrivenAgentMacro")
 
 /// Generates a `textFormat` property bridging `@LLMToolArguments`' `jsonSchema` to `TextFormat`.

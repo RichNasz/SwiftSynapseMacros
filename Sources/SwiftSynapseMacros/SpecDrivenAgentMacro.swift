@@ -28,7 +28,6 @@ public struct SpecDrivenAgentMacro: MemberMacro {
             """,
             "private var _status: Status = .idle",
             "private var _transcript: [TranscriptEntry] = []",
-            "private var _dslAgent: LLMClient?",
             """
             var status: Status {
                 _status
@@ -45,26 +44,6 @@ public struct SpecDrivenAgentMacro: MemberMacro {
             }
             """,
             "var client: LLMClient?",
-            """
-            func run(_ message: String) async throws -> String {
-                guard let client else {
-                    throw SwiftSynapseError.clientNotInjected
-                }
-                _status = .running
-                do {
-                    let request = try ResponseRequest(model: "gpt-4o", text: message)
-                    let response = try await client.send(request)
-                    let result = response.firstOutputText ?? ""
-                    _transcript.append(.userMessage(message))
-                    _transcript.append(.assistantMessage(result))
-                    _status = .completed
-                    return result
-                } catch {
-                    _status = .failed
-                    throw error
-                }
-            }
-            """,
         ]
     }
 }
