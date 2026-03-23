@@ -17,3 +17,13 @@ public macro StructuredOutput() = #externalMacro(module: "SwiftSynapseMacros", t
 /// Attach to a `struct` or `class` declaration.
 @attached(member, names: named(agentTools))
 public macro Capability() = #externalMacro(module: "SwiftSynapseMacros", type: "CapabilityMacro")
+
+/// Validates an agent goal prompt at compile time and generates an `AgentGoalMetadata` companion constant.
+/// Attach to a `static let` string literal declaration.
+@attached(peer, names: arbitrary)
+public macro AgentGoal(
+    maxTurns: Int = 20,
+    temperature: Double = 0.7,
+    requiresTools: Bool = false,
+    preferredFormat: TextFormat = .text
+) = #externalMacro(module: "SwiftSynapseMacros", type: "AgentGoalMacro")

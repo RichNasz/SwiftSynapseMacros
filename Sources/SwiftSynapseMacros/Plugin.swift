@@ -9,5 +9,6 @@ struct SwiftSynapseMacrosPlugin: CompilerPlugin {
         SpecDrivenAgentMacro.self,
         StructuredOutputMacro.self,
         CapabilityMacro.self,
+        AgentGoalMacro.self,
     ]
 }
