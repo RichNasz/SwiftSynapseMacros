@@ -3,7 +3,7 @@
 import Observation
 
 @Observable
-public final class ObservableTranscript {
+public final class ObservableTranscript: @unchecked Sendable {
     public private(set) var entries: [TranscriptEntry] = []
     public private(set) var isStreaming: Bool = false
     public private(set) var streamingText: String = ""
