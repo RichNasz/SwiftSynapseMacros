@@ -29,27 +29,44 @@ final class MacroExpansionTests: XCTestCase {
             expandedSource: """
             actor MyAgent {
 
-                enum Status: String, Sendable {
-                    case idle, running, completed, failed
-                }
+                private var _status: AgentStatus = .idle
 
-                private var _status: Status = .idle
+                private var _transcript: ObservableTranscript = ObservableTranscript()
 
-                private var _transcript: [TranscriptEntry] = []
+                private var _client: LLMClient?
 
-                var status: Status {
+                var status: AgentStatus {
                     _status
                 }
 
-                var isRunning: Bool {
-                    _status == .running
-                }
-
-                var transcript: [TranscriptEntry] {
+                var transcript: ObservableTranscript {
                     _transcript
                 }
 
-                var client: LLMClient?
+                var client: LLMClient {
+                    guard let c = _client else {
+                        fatalError("LLMClient not configured. Call configure(client:) before accessing.")
+                    }
+                    return c
+                }
+
+                func configure(client: LLMClient) {
+                    _client = client
+                }
+
+                func run(goal: String) async throws {
+                    guard let c = _client else {
+                        throw SwiftSynapseError.clientNotInjected
+                    }
+                    _status = .running
+                    do {
+                        let result = try await AgentRuntime.execute(goal: goal, transcript: _transcript, client: c)
+                        _status = .completed(result)
+                    } catch {
+                        _status = .error(error)
+                        throw error
+                    }
+                }
             }
             """,
             macros: testMacros
@@ -102,27 +119,44 @@ final class MacroExpansionTests: XCTestCase {
             expandedSource: """
             actor CustomBot {
 
-                enum Status: String, Sendable {
-                    case idle, running, completed, failed
-                }
+                private var _status: AgentStatus = .idle
 
-                private var _status: Status = .idle
+                private var _transcript: ObservableTranscript = ObservableTranscript()
 
-                private var _transcript: [TranscriptEntry] = []
+                private var _client: LLMClient?
 
-                var status: Status {
+                var status: AgentStatus {
                     _status
                 }
 
-                var isRunning: Bool {
-                    _status == .running
-                }
-
-                var transcript: [TranscriptEntry] {
+                var transcript: ObservableTranscript {
                     _transcript
                 }
 
-                var client: LLMClient?
+                var client: LLMClient {
+                    guard let c = _client else {
+                        fatalError("LLMClient not configured. Call configure(client:) before accessing.")
+                    }
+                    return c
+                }
+
+                func configure(client: LLMClient) {
+                    _client = client
+                }
+
+                func run(goal: String) async throws {
+                    guard let c = _client else {
+                        throw SwiftSynapseError.clientNotInjected
+                    }
+                    _status = .running
+                    do {
+                        let result = try await AgentRuntime.execute(goal: goal, transcript: _transcript, client: c)
+                        _status = .completed(result)
+                    } catch {
+                        _status = .error(error)
+                        throw error
+                    }
+                }
             }
             """,
             macros: testMacros

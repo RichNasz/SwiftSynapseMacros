@@ -110,6 +110,43 @@ public final class ObservableTranscript {
 
 ---
 
+## AgentStatus
+
+Shared status enum for all `@SpecDrivenAgent` actors. Uses `@unchecked Sendable` because `Error` and `Any` associated values are not `Sendable`.
+
+```swift
+public enum AgentStatus: @unchecked Sendable {
+    case idle
+    case running
+    case paused
+    case error(Error)
+    case completed(Any)
+}
+```
+
+**Dependencies:** None (stdlib only)
+
+---
+
+## AgentRuntime
+
+Runtime engine that executes the dynamic reasoning loop for `@SpecDrivenAgent` actors. The macro-generated `run(goal:)` method delegates to this type.
+
+```swift
+public enum AgentRuntime {
+    public static func execute(
+        goal: String,
+        transcript: ObservableTranscript,
+        client: any LLMClient,
+        maxTurns: Int = 20
+    ) async throws -> Any
+}
+```
+
+**Dependencies:** `ObservableTranscript`, `LLMClient`, `ResponseRequest`, `TranscriptEntry`
+
+---
+
 ## Macros.swift
 
 Contains `#externalMacro` declarations and re-exports.
