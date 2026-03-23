@@ -29,13 +29,14 @@ Then add `"SwiftSynapseMacrosClient"` to your target's dependencies.
 
 ### @SpecDrivenAgent
 
-Attach to an `actor` to generate status tracking, transcript, LLM client wrapper, and a `run(_:)` method.
+Attach to an `actor` to generate status tracking, transcript, LLM client wrapper, and a `run(goal:)` method that delegates to `AgentRuntime`.
 
 ```swift
 @SpecDrivenAgent
 actor MyAgent {
-    // Generated: Status enum, _status, _transcript, _dslAgent,
-    //            status, isRunning, transcript, client, run(_:)
+    // Generated: _status, _transcript, _client,
+    //            status, transcript, client,
+    //            configure(client:), run(goal:)
 }
 ```
 
@@ -61,6 +62,52 @@ struct MyTools {
 }
 ```
 
+### @AgentGoal
+
+Attach to a `static let` string to validate the prompt at compile time and generate an `AgentGoalMetadata` companion constant.
+
+```swift
+@AgentGoal(maxTurns: 15, temperature: 0.4)
+static let researchGoal = """
+You are a research assistant. Think step-by-step. Use tools when needed.
+"""
+// Generated: static let researchGoal_metadata: AgentGoalMetadata
+```
+
+Compile-time validation includes: empty prompt errors, parameter range checks, and warnings for prompts missing agentic keywords.
+
+## Using Macros Together
+
+The macros are designed to work in combination:
+
+```swift
+// 1. Define tools with @Capability
+@Capability
+struct ResearchTools {
+    // Bridges @LLMTool types to AgentTool
+}
+
+// 2. Define structured output with @StructuredOutput
+@StructuredOutput
+struct ResearchResult {
+    // Bridges @LLMToolArguments JSON schema to TextFormat
+}
+
+// 3. Define validated goals with @AgentGoal
+@AgentGoal(maxTurns: 20, requiresTools: true)
+static let researchGoal = """
+You are a research assistant. Think step-by-step. Use tools when needed.
+Output FINAL ANSWER when done.
+"""
+
+// 4. Orchestrate with @SpecDrivenAgent
+@SpecDrivenAgent
+actor ResearchAgent {
+    // Generated: status tracking, transcript, client, run(goal:)
+    // Uses AgentRuntime to execute the dynamic reasoning loop
+}
+```
+
 ## Client Types
 
 | Type | Description |
@@ -70,6 +117,9 @@ struct MyTools {
 | `TextFormat` | `.jsonSchema` or `.text` output format |
 | `SwiftSynapseError` | Error cases for agent orchestration |
 | `ObservableTranscript` | `@Observable` class for SwiftUI transcript binding |
+| `AgentStatus` | Shared status enum (`idle`, `running`, `paused`, `error`, `completed`) |
+| `AgentRuntime` | Runtime engine for dynamic agent reasoning loops |
+| `AgentGoalMetadata` | Compile-time metadata for validated agent goals |
 
 ## Dependencies
 

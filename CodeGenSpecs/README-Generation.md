@@ -15,8 +15,9 @@
    - **Overview:** 2-3 sentences explaining what the package does
    - **Requirements:** Swift version, platforms
    - **Installation:** Swift Package Manager snippet with the package URL and dependency
-   - **Macros:** Section per macro (`@SpecDrivenAgent`, `@StructuredOutput`, `@Capability`) with brief description and usage example
-   - **Client Types:** Brief list of orchestration types
+   - **Macros:** Section per macro (`@SpecDrivenAgent`, `@StructuredOutput`, `@Capability`, `@AgentGoal`) with brief description and usage example
+   - **Using Macros Together:** Section showing how macros combine (e.g., `@SpecDrivenAgent` actor using `@Capability` tools with `@AgentGoal` prompts and `@StructuredOutput` responses)
+   - **Client Types:** Brief list of orchestration types (including `AgentStatus`, `AgentRuntime`, `AgentGoalMetadata`)
    - **Dependencies:** Table of sibling packages
    - **License:** Reference to license file if present
 

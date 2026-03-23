@@ -1,6 +1,8 @@
 # Spec: Macro Expansion Tests
 
-**Generates:** `Tests/SwiftSynapseMacrosTests/MacroExpansionTests.swift`
+**Generates:**
+- `Tests/SwiftSynapseMacrosTests/MacroExpansionTests.swift`
+- `Tests/SwiftSynapseMacrosTests/AgentGoalMacroTests.swift`
 
 ## Overview
 
@@ -55,6 +57,20 @@ All test methods are wrapped in `#if canImport(SwiftSynapseMacros)` with a fallb
 | `testCapabilityExpandsOnClass` | `@Capability class Tools {}` | `func agentTools() -> [AgentTool] { [] }` with TODO comment |
 | `testCapabilityDiagnosesActor` | `@Capability actor Foo {}` | No expansion, diagnostic: `"@Capability can only be applied to a struct or class"` at line 1, column 1 |
 | `testCapabilityDiagnosesEnum` | `@Capability enum Foo {}` | No expansion, diagnostic: `"@Capability can only be applied to a struct or class"` at line 1, column 1 |
+
+### @AgentGoal
+
+`@AgentGoal` tests live in a separate file (`AgentGoalMacroTests.swift`) with their own macro dictionary since `@AgentGoal` is a `PeerMacro` (not a `MemberMacro` like the others).
+
+| Test | Input | Expected |
+|------|-------|----------|
+| `testAgentGoalExpandsOnStaticLet` | `@AgentGoal static let goal = "Think step-by-step. Use tools when needed."` | Generates `goal_metadata: AgentGoalMetadata` with default parameters |
+| `testAgentGoalWithParameters` | `@AgentGoal(maxTurns: 10, temperature: 0.5) static let goal = "Think step-by-step."` | Generates metadata with custom maxTurns and temperature |
+| `testAgentGoalDiagnosesEmptyPrompt` | `@AgentGoal static let goal = ""` | No expansion, diagnostic: `"Agent goal cannot be empty"` at line 2, column 19 |
+| `testAgentGoalDiagnosesNonStaticLet` | `@AgentGoal var goal = "Think step-by-step."` | No expansion, diagnostic: `"@AgentGoal can only be applied to a static let declaration"` at line 1, column 1 |
+| `testAgentGoalWarnsOnMissingAgenticKeywords` | `@AgentGoal static let goal = "Hello world"` | Generates metadata, warning: `"Goal may not encourage agentic behavior — consider adding 'think step-by-step' or 'use tools'"` at line 2, column 19 |
+| `testAgentGoalDiagnosesInvalidMaxTurns` | `@AgentGoal(maxTurns: 0) static let goal = "Think step-by-step."` | No expansion, diagnostic: `"maxTurns must be at least 1"` at line 1, column 1 |
+| `testAgentGoalDiagnosesInvalidTemperature` | `@AgentGoal(temperature: 3.0) static let goal = "Think step-by-step."` | No expansion, diagnostic: `"temperature must be between 0 and 2"` at line 1, column 1 |
 
 ## Expansion Verification Notes
 

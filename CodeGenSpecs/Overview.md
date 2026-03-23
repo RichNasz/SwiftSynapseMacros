@@ -11,7 +11,8 @@ This directory contains the specifications that serve as the single source of tr
 | [Macros-SpecDrivenAgent.md](Macros-SpecDrivenAgent.md) | `Sources/SwiftSynapseMacros/SpecDrivenAgentMacro.swift` |
 | [Macros-StructuredOutput.md](Macros-StructuredOutput.md) | `Sources/SwiftSynapseMacros/StructuredOutputMacro.swift` |
 | [Macros-Capability.md](Macros-Capability.md) | `Sources/SwiftSynapseMacros/CapabilityMacro.swift` |
-| [Client-Types.md](Client-Types.md) | `Sources/SwiftSynapseMacrosClient/TranscriptEntry.swift`, `AgentTool.swift`, `TextFormat.swift`, `SwiftSynapseError.swift`, `Transcript.swift`, `Macros.swift` |
+| [Macros-AgentGoal.md](Macros-AgentGoal.md) | `Sources/SwiftSynapseMacros/AgentGoalMacro.swift` |
+| [Client-Types.md](Client-Types.md) | `Sources/SwiftSynapseMacrosClient/AgentTool.swift`, `TextFormat.swift`, `SwiftSynapseError.swift`, `Transcript.swift`, `AgentStatus.swift`, `AgentRuntime.swift`, `AgentGoalMetadata.swift`, `Macros.swift` |
 | [Tests.md](Tests.md) | `Tests/SwiftSynapseMacrosTests/MacroExpansionTests.swift` |
 | [README-Generation.md](README-Generation.md) | `README.md` (root) |
 

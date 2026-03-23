@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-SwiftSynapseMacros is the macro-powered orchestration layer for the SwiftSynapse ecosystem. It provides Swift macros (`@SpecDrivenAgent`, `@StructuredOutput`, `@Capability`) that generate boilerplate for LLM agent orchestration, bridging SwiftOpenResponsesDSL's LLM client and SwiftLLMToolMacros' tool definitions into observable, status-tracked agent actors.
+SwiftSynapseMacros is the macro-powered orchestration layer for the SwiftSynapse ecosystem. It provides Swift macros (`@SpecDrivenAgent`, `@StructuredOutput`, `@Capability`, `@AgentGoal`) that generate boilerplate for LLM agent orchestration, bridging SwiftOpenResponsesDSL's LLM client and SwiftLLMToolMacros' tool definitions into observable, status-tracked agent actors.
 
 ## Commands
 
@@ -20,6 +20,7 @@ SwiftSynapseMacros is the macro-powered orchestration layer for the SwiftSynapse
    - `SpecDrivenAgentMacro.swift` - Agent scaffold generation
    - `StructuredOutputMacro.swift` - JSON schema bridging
    - `CapabilityMacro.swift` - Tool bridging
+   - `AgentGoalMacro.swift` - Goal validation and metadata generation
    - **SwiftSyntax only** — no sibling package imports
 
 2. **SwiftSynapseMacrosClient** (client target) - Public API that users import
@@ -28,9 +29,14 @@ SwiftSynapseMacros is the macro-powered orchestration layer for the SwiftSynapse
    - `TextFormat.swift` - `.jsonSchema` / `.text` output format enum
    - `SwiftSynapseError.swift` - Error cases for orchestration
    - `Transcript.swift` - `@Observable` transcript for SwiftUI
+   - `AgentStatus.swift` - Shared agent status enum
+   - `AgentRuntime.swift` - Runtime loop engine
+   - `AgentGoalMetadata.swift` - Goal metadata struct
 
 3. **SwiftSynapseMacrosTests** (test target)
    - XCTest-based macro expansion tests (`assertMacroExpansion`)
+   - `MacroExpansionTests.swift` - Tests for `@SpecDrivenAgent`, `@StructuredOutput`, `@Capability`
+   - `AgentGoalMacroTests.swift` - Tests for `@AgentGoal`
 
 ### Key Design Decisions
 
@@ -38,6 +44,7 @@ SwiftSynapseMacros is the macro-powered orchestration layer for the SwiftSynapse
 - **Client re-exports siblings**: `@_exported import SwiftLLMToolMacros` and `@_exported import SwiftOpenResponsesDSL` so consumers only need to import `SwiftSynapseMacrosClient`.
 - **Diagnostics**: Each macro has a diagnostic enum conforming to `SwiftDiagnostics.DiagnosticMessage`.
 - **Actor-only agents**: `@SpecDrivenAgent` enforces `actor` declarations at compile time.
+- **Goal validation**: `@AgentGoal` validates prompt content and parameters at compile time, generating `AgentGoalMetadata` peers.
 
 ## Spec-Driven Workflow
 
@@ -59,20 +66,26 @@ Sources/
     SpecDrivenAgentMacro.swift       # @SpecDrivenAgent implementation
     StructuredOutputMacro.swift      # @StructuredOutput implementation
     CapabilityMacro.swift            # @Capability implementation
+    AgentGoalMacro.swift             # @AgentGoal implementation
   SwiftSynapseMacrosClient/         # Public API
     Macros.swift                     # #externalMacro declarations + re-exports
     AgentTool.swift                  # Tool bridging type
     TextFormat.swift                 # Output format enum
     SwiftSynapseError.swift          # Error type
     Transcript.swift                 # ObservableTranscript
+    AgentStatus.swift                # Shared agent status enum
+    AgentRuntime.swift               # Runtime loop engine
+    AgentGoalMetadata.swift          # Goal metadata struct
 Tests/
   SwiftSynapseMacrosTests/
     MacroExpansionTests.swift        # assertMacroExpansion tests
+    AgentGoalMacroTests.swift        # @AgentGoal expansion tests
 CodeGenSpecs/                        # Source of truth
   Overview.md                        # Spec index and rules
   Macros-SpecDrivenAgent.md          # @SpecDrivenAgent spec
   Macros-StructuredOutput.md         # @StructuredOutput spec
   Macros-Capability.md               # @Capability spec
+  Macros-AgentGoal.md                # @AgentGoal spec
   Client-Types.md                    # Client type specs
   Tests.md                           # Test spec
   README-Generation.md               # README spec
@@ -90,6 +103,9 @@ Types referenced in macro-generated code come from different packages:
 | `TextFormat` | SwiftSynapseMacrosClient |
 | `SwiftSynapseError` | SwiftSynapseMacrosClient |
 | `ObservableTranscript` | SwiftSynapseMacrosClient |
+| `AgentStatus` | SwiftSynapseMacrosClient |
+| `AgentRuntime` | SwiftSynapseMacrosClient |
+| `AgentGoalMetadata` | SwiftSynapseMacrosClient |
 | `LLMClient` | SwiftOpenResponsesDSL (re-exported) |
 | `Role` | SwiftOpenResponsesDSL (re-exported) |
 | `ToolDefinition` | SwiftLLMToolMacros (re-exported) |
@@ -111,7 +127,7 @@ Types referenced in macro-generated code come from different packages:
 
 - **Macro expansion tests** use `assertMacroExpansion` from SwiftSyntaxMacrosTestSupport (XCTest)
 - SwiftSyntax reformats single-line closures to multi-line in expansion tests — expected behavior
-- Tests cover: correct member generation, diagnostic errors for wrong declaration kinds
+- Tests cover: correct member/peer generation, diagnostic errors for wrong declaration kinds, compile-time validation (empty prompts, invalid parameters, agentic keyword warnings)
 
 ## Claude Code Files
 
