@@ -22,8 +22,8 @@ public struct CapabilityMacro: MemberMacro {
 
         return [
             """
-            func agentTools() -> [AgentTool] {
-                // TODO: bridge @LLMTool types to AgentTool
+            func agentTools() -> [AgentToolDefinition] {
+                // TODO: bridge @LLMTool types to AgentToolDefinition
                 []
             }
             """,

@@ -5,7 +5,7 @@
 
 /// Generates an agent scaffold with status tracking, LLMClient wrapper, transcript, and runtime loop.
 /// Attach to an `actor` declaration.
-@attached(member, names: named(_status), named(_transcript), named(_client), named(status), named(transcript), named(client), named(configure), named(run))
+@attached(member, names: named(_status), named(_transcript), named(status), named(transcript))
 public macro SpecDrivenAgent() = #externalMacro(module: "SwiftSynapseMacros", type: "SpecDrivenAgentMacro")
 
 /// Generates a `textFormat` property bridging `@LLMToolArguments`' `jsonSchema` to `TextFormat`.

@@ -5,5 +5,5 @@ public enum AgentStatus: @unchecked Sendable {
     case running
     case paused
     case error(Error)
-    case completed(Any)
+    case completed(String)
 }

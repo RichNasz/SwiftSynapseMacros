@@ -2,7 +2,7 @@
 // Do not edit manually — update the corresponding spec file and re-generate
 import SwiftLLMToolMacros
 
-public struct AgentTool: Sendable {
+public struct AgentToolDefinition: Sendable {
     public let definition: ToolDefinition
 
     public init(definition: ToolDefinition) {

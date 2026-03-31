@@ -33,39 +33,12 @@ final class MacroExpansionTests: XCTestCase {
 
                 private var _transcript: ObservableTranscript = ObservableTranscript()
 
-                private var _client: LLMClient?
-
                 var status: AgentStatus {
                     _status
                 }
 
                 var transcript: ObservableTranscript {
                     _transcript
-                }
-
-                var client: LLMClient {
-                    guard let c = _client else {
-                        fatalError("LLMClient not configured. Call configure(client:) before accessing.")
-                    }
-                    return c
-                }
-
-                func configure(client: LLMClient) {
-                    _client = client
-                }
-
-                func run(goal: String) async throws {
-                    guard let c = _client else {
-                        throw SwiftSynapseError.clientNotInjected
-                    }
-                    _status = .running
-                    do {
-                        let result = try await AgentRuntime.execute(goal: goal, transcript: _transcript, client: c)
-                        _status = .completed(result)
-                    } catch {
-                        _status = .error(error)
-                        throw error
-                    }
                 }
             }
             """,
@@ -123,39 +96,12 @@ final class MacroExpansionTests: XCTestCase {
 
                 private var _transcript: ObservableTranscript = ObservableTranscript()
 
-                private var _client: LLMClient?
-
                 var status: AgentStatus {
                     _status
                 }
 
                 var transcript: ObservableTranscript {
                     _transcript
-                }
-
-                var client: LLMClient {
-                    guard let c = _client else {
-                        fatalError("LLMClient not configured. Call configure(client:) before accessing.")
-                    }
-                    return c
-                }
-
-                func configure(client: LLMClient) {
-                    _client = client
-                }
-
-                func run(goal: String) async throws {
-                    guard let c = _client else {
-                        throw SwiftSynapseError.clientNotInjected
-                    }
-                    _status = .running
-                    do {
-                        let result = try await AgentRuntime.execute(goal: goal, transcript: _transcript, client: c)
-                        _status = .completed(result)
-                    } catch {
-                        _status = .error(error)
-                        throw error
-                    }
                 }
             }
             """,
@@ -232,8 +178,8 @@ final class MacroExpansionTests: XCTestCase {
             expandedSource: """
             struct Tools {
 
-                func agentTools() -> [AgentTool] {
-                    // TODO: bridge @LLMTool types to AgentTool
+                func agentTools() -> [AgentToolDefinition] {
+                    // TODO: bridge @LLMTool types to AgentToolDefinition
                     []
                 }
             }
@@ -252,8 +198,8 @@ final class MacroExpansionTests: XCTestCase {
             expandedSource: """
             class Tools {
 
-                func agentTools() -> [AgentTool] {
-                    // TODO: bridge @LLMTool types to AgentTool
+                func agentTools() -> [AgentToolDefinition] {
+                    // TODO: bridge @LLMTool types to AgentToolDefinition
                     []
                 }
             }

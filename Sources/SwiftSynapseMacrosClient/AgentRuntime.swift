@@ -23,6 +23,7 @@ public enum AgentRuntime {
     ///   - maxToolIterations: Maximum tool dispatch loop iterations.
     ///   - timeoutSeconds: Request timeout in seconds.
     /// - Returns: The final text response from the LLM.
+    @available(*, deprecated, message: "Use SwiftOpenResponsesDSL Agent directly instead")
     public static func execute(
         goal: String,
         transcript: ObservableTranscript,
@@ -126,6 +127,7 @@ public enum AgentRuntime {
     // MARK: - Legacy Compatibility
 
     /// Simple single-turn execution (backwards compatible with the old stub).
+    @available(*, deprecated, message: "Use SwiftOpenResponsesDSL Agent directly instead")
     public static func execute(
         goal: String,
         transcript: ObservableTranscript,
