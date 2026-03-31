@@ -15,6 +15,10 @@ let package = Package(
             name: "SwiftSynapseMacrosClient",
             targets: ["SwiftSynapseMacrosClient"]
         ),
+        .library(
+            name: "SwiftSynapseUI",
+            targets: ["SwiftSynapseUI"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "602.0.0"),
@@ -39,6 +43,12 @@ let package = Package(
                 .product(name: "SwiftOpenResponsesDSL", package: "SwiftOpenResponsesDSL"),
                 .product(name: "SwiftOpenSkills", package: "SwiftOpenSkills"),
                 .product(name: "SwiftOpenSkillsResponses", package: "SwiftOpenSkills"),
+            ]
+        ),
+        .target(
+            name: "SwiftSynapseUI",
+            dependencies: [
+                "SwiftSynapseMacrosClient",
             ]
         ),
         .testTarget(
