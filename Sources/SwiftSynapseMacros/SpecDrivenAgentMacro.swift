@@ -12,7 +12,7 @@ public struct SpecDrivenAgentMacro: MemberMacro {
         conformingTo protocols: [TypeSyntax],
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
-        guard declaration.is(ActorDeclSyntax.self) else {
+        guard let actorDecl = declaration.as(ActorDeclSyntax.self) else {
             context.diagnose(.init(
                 node: Syntax(node),
                 message: SpecDrivenAgentDiagnostic.requiresActor
@@ -20,16 +20,19 @@ public struct SpecDrivenAgentMacro: MemberMacro {
             return []
         }
 
+        let isPublic = actorDecl.modifiers.contains { $0.name.tokenKind == .keyword(.public) }
+        let access = isPublic ? "public " : ""
+
         return [
             "private var _status: AgentStatus = .idle",
             "private var _transcript: ObservableTranscript = ObservableTranscript()",
             """
-            var status: AgentStatus {
+            \(raw: access)var status: AgentStatus {
                 _status
             }
             """,
             """
-            var transcript: ObservableTranscript {
+            \(raw: access)var transcript: ObservableTranscript {
                 _transcript
             }
             """,

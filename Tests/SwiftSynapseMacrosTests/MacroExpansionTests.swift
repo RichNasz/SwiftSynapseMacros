@@ -109,6 +109,33 @@ final class MacroExpansionTests: XCTestCase {
         )
     }
 
+    func testSpecDrivenAgentPublicActorGeneratesPublicAccessors() throws {
+        assertMacroExpansion(
+            """
+            @SpecDrivenAgent
+            public actor PublicAgent {
+            }
+            """,
+            expandedSource: """
+            public actor PublicAgent {
+
+                private var _status: AgentStatus = .idle
+
+                private var _transcript: ObservableTranscript = ObservableTranscript()
+
+                public var status: AgentStatus {
+                    _status
+                }
+
+                public var transcript: ObservableTranscript {
+                    _transcript
+                }
+            }
+            """,
+            macros: testMacros
+        )
+    }
+
     // MARK: - @StructuredOutput
 
     func testStructuredOutputExpandsOnStruct() throws {
