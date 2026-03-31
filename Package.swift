@@ -20,6 +20,7 @@ let package = Package(
         .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "602.0.0"),
         .package(url: "https://github.com/RichNasz/SwiftLLMToolMacros", branch: "main"),
         .package(url: "https://github.com/RichNasz/SwiftOpenResponsesDSL", branch: "main"),
+        .package(url: "https://github.com/RichNasz/SwiftOpenSkills", branch: "main"),
     ],
     targets: [
         .macro(
@@ -36,6 +37,8 @@ let package = Package(
                 "SwiftSynapseMacros",
                 .product(name: "SwiftLLMToolMacros", package: "SwiftLLMToolMacros"),
                 .product(name: "SwiftOpenResponsesDSL", package: "SwiftOpenResponsesDSL"),
+                .product(name: "SwiftOpenSkills", package: "SwiftOpenSkills"),
+                .product(name: "SwiftOpenSkillsResponses", package: "SwiftOpenSkills"),
             ]
         ),
         .testTarget(

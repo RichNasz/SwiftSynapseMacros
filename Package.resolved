@@ -1,5 +1,5 @@
 {
-  "originHash" : "00ccaaabacd5a263c93e7663367b95d3ee44c5b520f1ffabb5e64868dd70b755",
+  "originHash" : "fffbd51a60ce0dab341e9b77198256eed3a406b1a0d933b88497eecdfb02c7c2",
   "pins" : [
     {
       "identity" : "swift-syntax",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "4799286537280063c85a32f09884cfbca301b1a1",
         "version" : "602.0.0"
+      }
+    },
+    {
+      "identity" : "swiftchatcompletionsdsl",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/RichNasz/SwiftChatCompletionsDSL",
+      "state" : {
+        "branch" : "main",
+        "revision" : "51916abf684e96077d967bf7dd78af7ac7fe3bfd"
       }
     },
     {
@@ -26,6 +35,24 @@
       "state" : {
         "branch" : "main",
         "revision" : "11391d7249b0dd20558337c45a1b6c68d12bc241"
+      }
+    },
+    {
+      "identity" : "swiftopenskills",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/RichNasz/SwiftOpenSkills",
+      "state" : {
+        "branch" : "main",
+        "revision" : "d3770bb2791eba6bc3b95ee3a7c9bc55dc8fcc39"
+      }
+    },
+    {
+      "identity" : "yams",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/jpsim/Yams.git",
+      "state" : {
+        "revision" : "3d6871d5b4a5cd519adf233fbb576e0a2af71c17",
+        "version" : "5.4.0"
       }
     }
   ],
