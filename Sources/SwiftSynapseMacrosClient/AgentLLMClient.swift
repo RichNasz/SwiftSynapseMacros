@@ -3,6 +3,10 @@
 import Foundation
 import SwiftOpenResponsesDSL
 
+#if canImport(FoundationModels)
+import FoundationModels
+#endif
+
 // MARK: - Backend-Agnostic Types
 
 /// A backend-agnostic prompt representation.
@@ -170,21 +174,99 @@ public actor HybridLLMClient: AgentLLMClient {
     }
 
     public func stream(_ request: AgentRequest) async throws -> AsyncThrowingStream<String, Error> {
-        // For streaming, use cloud path (Foundation Models streaming API differs)
-        try await cloudClient.stream(request)
+        #if canImport(FoundationModels)
+        // Try on-device streaming first, fall back to cloud
+        if SystemLanguageModel.default.isAvailable {
+            return streamOnDevice(request)
+        }
+        #endif
+        return try await cloudClient.stream(request)
     }
 
     #if canImport(FoundationModels)
     private func sendOnDevice(_ request: AgentRequest) async throws -> AgentResponse {
-        // Foundation Models integration placeholder — requires platform-specific implementation
-        // On platforms where FoundationModels is available, this would use LanguageModelSession
-        throw AgentConfigurationError.foundationModelsUnavailable
+        let model = SystemLanguageModel.default
+        guard model.isAvailable else {
+            throw AgentConfigurationError.foundationModelsUnavailable
+        }
+
+        let session: LanguageModelSession
+        if let instructions = request.systemPrompt {
+            session = LanguageModelSession(instructions: instructions)
+        } else {
+            session = LanguageModelSession()
+        }
+
+        var options = GenerationOptions()
+        if let temperature = request.temperature {
+            options.temperature = temperature
+        }
+        if let maxTokens = request.maxTokens {
+            options.maximumResponseTokens = maxTokens
+        }
+
+        let response = try await session.respond(to: request.userPrompt, options: options)
+        return AgentResponse(
+            text: response.content,
+            toolCalls: [],
+            responseId: nil,
+            inputTokens: 0,
+            outputTokens: 0
+        )
+    }
+
+    private func streamOnDevice(_ request: AgentRequest) -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { continuation in
+            Task {
+                do {
+                    let model = SystemLanguageModel.default
+                    guard model.isAvailable else {
+                        continuation.finish(throwing: AgentConfigurationError.foundationModelsUnavailable)
+                        return
+                    }
+
+                    let session: LanguageModelSession
+                    if let instructions = request.systemPrompt {
+                        session = LanguageModelSession(instructions: instructions)
+                    } else {
+                        session = LanguageModelSession()
+                    }
+
+                    var options = GenerationOptions()
+                    if let temperature = request.temperature {
+                        options.temperature = temperature
+                    }
+                    if let maxTokens = request.maxTokens {
+                        options.maximumResponseTokens = maxTokens
+                    }
+
+                    let stream = session.streamResponse(to: request.userPrompt, options: options)
+                    var lastText = ""
+                    for try await snapshot in stream {
+                        let current = snapshot.content
+                        if current.count > lastText.count {
+                            let delta = String(current.dropFirst(lastText.count))
+                            continuation.yield(delta)
+                            lastText = current
+                        }
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
     }
 
     private func isFallbackEligible(_ error: Error) -> Bool {
+        if error is AgentConfigurationError {
+            return true
+        }
         let description = String(describing: error)
-        return description.contains("modelNotAvailable")
-            || description.contains("unsupportedCapability")
+        return description.contains("modelNotReady")
+            || description.contains("deviceNotEligible")
+            || description.contains("appleIntelligenceNotEnabled")
+            || description.contains("assetsUnavailable")
             || description.contains("foundationModelsUnavailable")
     }
     #endif
