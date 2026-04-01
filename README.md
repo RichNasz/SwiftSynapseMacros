@@ -2,17 +2,32 @@
 
 # SwiftSynapseMacros
 
-Swift macros and core types for AI agent orchestration. Part of the [SwiftSynapse](https://github.com/RichNasz/SwiftSynapse) ecosystem.
+Swift macros and core types for AI agent scaffolding. Part of the [SwiftSynapse](https://github.com/RichNasz/SwiftSynapse) ecosystem.
 
 ## Overview
 
 SwiftSynapseMacros provides:
 
-- **Swift macros** that generate agent scaffolding (`@SpecDrivenAgent`, `@StructuredOutput`, `@Capability`, `@AgentGoal`)
-- **Core types** used by macro-generated code and SwiftUI views (`AgentStatus`, `ObservableTranscript`, `AgentExecutable`, `ToolProgressUpdate`)
-- **SwiftUI views** via `SwiftSynapseUI` for drop-in agent interfaces
+- **Swift macros** that generate agent scaffolding at compile time (`@SpecDrivenAgent`, `@StructuredOutput`, `@Capability`, `@AgentGoal`)
+- **Core types** that macro-generated code and [SwiftSynapseHarness](https://github.com/RichNasz/SwiftSynapseHarness) depend on (`AgentStatus`, `ObservableTranscript`, `AgentExecutable`, `ToolProgressUpdate`)
 
-For the full agent harness (tool loop, hooks, permissions, streaming, recovery, MCP, multi-agent coordination, and production capabilities), see [SwiftSynapseHarness](https://github.com/RichNasz/SwiftSynapseHarness).
+For the full agent runtime — tool loop, hooks, permissions, streaming, recovery, MCP, multi-agent coordination, and SwiftUI views — see [SwiftSynapseHarness](https://github.com/RichNasz/SwiftSynapseHarness).
+
+## Package Architecture
+
+### Why this is a separate package
+
+Swift's compiler plugin system has a hard constraint: `.macro()` targets can only depend on swift-syntax — they cannot import user-land packages. This means the macro plugin and its associated type declarations must live in an isolated package. **SwiftSynapseHarness depends on SwiftSynapseMacros, not the reverse.** The separation is a compiler requirement.
+
+### The three-target structure
+
+| Target | Kind | Purpose |
+|--------|------|---------|
+| `SwiftSynapseMacros` | `.macro` (compiler plugin) | Runs during `swift build`. Never imported at runtime. Constrained to SwiftSyntax only. |
+| `SwiftSynapseMacrosClient` | `.target` (library) | The importable library. Activates the plugin via `#externalMacro` declarations, provides core types, and re-exports sibling packages. |
+| `SwiftSynapseMacrosTests` | `.testTarget` | Validates that each macro expands to the correct source code (compile-time expansion snapshots, not runtime tests). |
+
+Only `SwiftSynapseMacrosClient` is exported as a product. The `.macro` target is activated automatically when you depend on it.
 
 ## Requirements
 
@@ -21,21 +36,44 @@ For the full agent harness (tool loop, hooks, permissions, streaming, recovery, 
 
 ## Installation
 
+### Building agents with `@SpecDrivenAgent` (most users)
+
+Add **SwiftSynapseHarness**. It re-exports everything from this package via `@_exported import SwiftSynapseMacrosClient`, so a single import gives access to all macros, types, and the full agent runtime. SwiftSynapseMacros is fetched automatically as a transitive dependency.
+
 ```swift
-dependencies: [
-    .package(url: "https://github.com/RichNasz/SwiftSynapseMacros", branch: "main"),
-]
+// In Package.swift
+.package(url: "https://github.com/RichNasz/SwiftSynapseHarness", branch: "main")
 ```
 
-Add `"SwiftSynapseMacrosClient"` to your target's dependencies for macros and core types. Add `"SwiftSynapseUI"` for SwiftUI views.
+```swift
+// In your target dependencies
+.product(name: "SwiftSynapseHarness", package: "SwiftSynapseHarness")
+```
 
-Most agent projects should depend on [SwiftSynapseHarness](https://github.com/RichNasz/SwiftSynapseHarness) instead, which re-exports this package.
+```swift
+// In source files — one import covers everything
+import SwiftSynapseHarness
+```
+
+### Using macros without the full harness (rare)
+
+Only needed when you want the compile-time macros and core types but not the agent runtime.
+
+```swift
+// In Package.swift
+.package(url: "https://github.com/RichNasz/SwiftSynapseMacros", branch: "main")
+// In your target dependencies: "SwiftSynapseMacrosClient"
+```
+
+### Extending the compiler plugin (contributors)
+
+Work directly with this package. See `CodeGenSpecs/Macros-*.md` for the spec-driven contribution workflow.
 
 ## Macros
 
 ### @SpecDrivenAgent
 
-Generates lifecycle scaffolding on `actor` declarations: `_status`, `_transcript`, `status`, `transcript`, `run(goal:)`, and `AgentExecutable` conformance. The generated `run(goal:)` calls `agentRun()` (from `SwiftSynapseHarness`) which handles status transitions, transcript reset, error/completion, cancellation, hooks, and telemetry.
+Applied to `actor` declarations. Generates lifecycle scaffolding: `_status`, `_transcript`, `status`, `transcript`, `run(goal:)`, and `AgentExecutable` conformance. The generated `run(goal:)` calls `agentRun()` from SwiftSynapseHarness, which handles status transitions, transcript reset, error handling, cancellation, hooks, and telemetry.
 
 ```swift
 import SwiftSynapseHarness
@@ -50,38 +88,51 @@ actor MyAgent {
 
 ### @StructuredOutput
 
-Generates a `textFormat` property on structs for JSON schema output formatting.
+Applied to `struct` declarations. Generates a `textFormat` property that bridges the struct's JSON schema (from `@LLMToolArguments`) to `TextFormat`, enabling structured JSON responses from the LLM.
 
 ### @Capability
 
-Generates an `agentTools()` method bridging `@LLMTool` types to `AgentToolDefinition`.
+Applied to `struct` or `class` declarations. Generates an `agentTools()` method that bridges `@LLMTool`-annotated types to the agent's tool registry.
 
 ### @AgentGoal
 
-Validates prompt strings at compile time and generates `AgentGoalMetadata` with configurable parameters (maxTurns, temperature, requiresTools, preferredFormat).
+A freestanding macro applied to string literals. Validates the prompt at compile time (non-empty, contains agentic keywords) and generates `AgentGoalMetadata` with configurable parameters.
+
+```swift
+let goal = #AgentGoal("Summarize the document", maxTurns: 5, temperature: 0.7)
+```
+
+## Using Macros Together
+
+```swift
+import SwiftSynapseHarness
+
+@SpecDrivenAgent
+actor ResearchAgent {
+    @Capability
+    struct Tools {
+        @LLMTool("search", description: "Search the web")
+        func search(query: String) async throws -> String { ... }
+    }
+
+    func execute(goal: String) async throws -> String {
+        let prompt = #AgentGoal("Research the topic and cite sources", requiresTools: true)
+        return try await client.run(goal: prompt, tools: Tools().agentTools())
+    }
+}
+```
 
 ## Core Types
 
 | Type | Purpose |
 |------|---------|
-| `AgentStatus` | Agent lifecycle state (idle, running, paused, error, completed) |
-| `ObservableTranscript` | `@Observable` transcript for SwiftUI binding |
-| `AgentExecutable` | Protocol for `@SpecDrivenAgent` actors |
-| `AgentLifecycleError` | Lifecycle errors (emptyGoal, blockedByHook) |
+| `AgentStatus` | Agent lifecycle state: `.idle`, `.running`, `.paused`, `.error(Error)`, `.completed(Any)` |
+| `ObservableTranscript` | `@Observable` transcript for SwiftUI binding; records all agent activity |
+| `AgentExecutable` | Protocol that `@SpecDrivenAgent` actors conform to |
+| `AgentLifecycleError` | Lifecycle errors: `.emptyGoal`, `.blockedByHook` |
 | `ToolProgressUpdate` | Progress updates from tool execution |
-| `TextFormat` | Output format enum (jsonSchema, text) |
+| `TextFormat` | Output format: `.jsonSchema(name:schema:strict:)` or `.text` |
 | `AgentGoalMetadata` | Compile-time validated goal parameters |
-
-## SwiftUI Integration
-
-`SwiftSynapseUI` provides drop-in views:
-
-- `AgentChatView` — Complete chat interface with status, transcript, and input
-- `AgentStatusView` — Status indicator with icons and animations
-- `TranscriptView` — Chat-style message list with tool call details
-- `StreamingTextView` — Real-time streaming text with cursor animation
-- `ToolCallDetailView` — Expandable tool call arguments and results
-- `AgentAppIntent` — Expose agents as Siri Shortcuts
 
 ## Dependencies
 
