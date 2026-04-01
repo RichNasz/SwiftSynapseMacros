@@ -21,8 +21,12 @@ public struct OSLogTelemetrySink: TelemetrySink {
             logger.info("Agent completed in \(duration, privacy: .public)")
         case .agentFailed(let error):
             logger.error("Agent failed: \(error.localizedDescription, privacy: .public)")
-        case .llmCallMade(let model, let input, let output, let duration):
-            logger.info("LLM call [\(model, privacy: .public)] tokens: \(input)+\(output) in \(duration, privacy: .public)")
+        case .llmCallMade(let model, let input, let output, let duration, let cacheCreation, let cacheRead):
+            if cacheCreation > 0 || cacheRead > 0 {
+                logger.info("LLM call [\(model, privacy: .public)] tokens: \(input)+\(output) cache: \(cacheCreation)w/\(cacheRead)r in \(duration, privacy: .public)")
+            } else {
+                logger.info("LLM call [\(model, privacy: .public)] tokens: \(input)+\(output) in \(duration, privacy: .public)")
+            }
         case .toolCalled(let name, let duration, let success):
             logger.info("Tool \(name, privacy: .public) \(success ? "succeeded" : "failed") in \(duration, privacy: .public)")
         case .retryAttempted(let error, let attempt):
@@ -33,6 +37,8 @@ public struct OSLogTelemetrySink: TelemetrySink {
             logger.warning("Guardrail triggered: \(policy, privacy: .public) risk=\(risk.rawValue, privacy: .public)")
         case .contextCompacted(let before, let after, let strategy):
             logger.info("Context compacted [\(strategy, privacy: .public)]: \(before) → \(after) entries")
+        case .apiErrorClassified(let category, let model):
+            logger.warning("API error classified: \(category, privacy: .public) model=\(model ?? "unknown", privacy: .public)")
         case .pluginActivated(let name):
             logger.info("Plugin activated: \(name, privacy: .public)")
         case .pluginError(let name, let error):

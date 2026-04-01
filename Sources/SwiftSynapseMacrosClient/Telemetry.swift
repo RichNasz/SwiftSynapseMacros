@@ -30,7 +30,7 @@ public enum TelemetryEventKind: Sendable {
     case agentCompleted(result: String, duration: Duration)
     case agentFailed(error: Error)
 
-    case llmCallMade(model: String, inputTokens: Int, outputTokens: Int, duration: Duration)
+    case llmCallMade(model: String, inputTokens: Int, outputTokens: Int, duration: Duration, cacheCreationTokens: Int = 0, cacheReadTokens: Int = 0)
 
     case toolCalled(name: String, duration: Duration, success: Bool)
 
@@ -41,6 +41,8 @@ public enum TelemetryEventKind: Sendable {
     case guardrailTriggered(policy: String, risk: RiskLevel)
 
     case contextCompacted(entriesBefore: Int, entriesAfter: Int, strategy: String)
+
+    case apiErrorClassified(category: String, model: String?)
 
     case pluginActivated(name: String)
     case pluginError(name: String, error: Error)

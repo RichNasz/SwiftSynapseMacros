@@ -241,3 +241,135 @@ await plugins.activateAll(context: pluginContext)
 `PluginContext` provides access to `toolRegistry`, `hookPipeline`, `guardrailPipeline`, and `configResolver`. Plugins activate in registration order and deactivate in reverse.
 
 Telemetry: `.pluginActivated(name:)`, `.pluginError(name:error:)`.
+
+## Cost Tracking
+
+Track per-session costs with per-model pricing:
+
+```swift
+let tracker = CostTracker()
+await tracker.setPricing(for: "claude-sonnet-4-20250514", pricing: ModelPricing(
+    inputCostPerMillionTokens: 3,
+    outputCostPerMillionTokens: 15
+))
+
+let sink = CostTrackingTelemetrySink(tracker: tracker)
+// Wire into telemetry — costs accumulate automatically from .llmCallMade events
+```
+
+`CostTracker` provides `totalCost()`, `totalAPIDuration()`, `usageByModel()`, and `allRecords()`.
+
+## Rate Limiting
+
+Rate-limit-aware retry with cooldown tracking, separate from general retry logic:
+
+```swift
+let rateLimitState = RateLimitState()
+
+try await AgentToolLoop.run(
+    client: client, config: config, goal: goal,
+    tools: tools, transcript: transcript,
+    rateLimitState: rateLimitState
+)
+```
+
+Checks cooldown before sending, parses Retry-After headers, enters cooldown on 429/529 errors, uses jittered exponential backoff.
+
+## Semantic Error Classification
+
+Classify API and tool errors into semantic categories for structured handling:
+
+```swift
+let classified = classifyAPIError(error, model: "claude-sonnet-4-20250514")
+switch classified.category {
+case .auth: // Invalid API key
+case .rateLimit(let retryAfter): // Rate limited
+case .connectivity: // Network issue
+default: break
+}
+```
+
+`classifyRecoverableError()` in the recovery system delegates to `classifyAPIError()` for consistent classification.
+
+## System Prompt Composition
+
+Build system prompts from composable, prioritized sections:
+
+```swift
+let builder = SystemPromptBuilder()
+await builder.addSection(SystemPromptSection(
+    id: "role", content: "You are a support agent.", priority: 0
+))
+await builder.addDynamicSection(id: "context", priority: 100) {
+    "Current time: \(Date())"
+}
+let systemPrompt = try await builder.build()
+```
+
+Tools can co-locate prompt instructions via `SystemPromptProvider` conformance. `buildWithCacheBoundaries()` returns sections grouped by cacheability for prompt-caching backends.
+
+## Tool Result Truncation
+
+Oversized tool results are automatically truncated before entering the transcript:
+
+```swift
+let policy = TruncationPolicy(maxCharacters: 8192)
+let truncated = ResultTruncator.truncate(longOutput, policy: policy)
+```
+
+Applied automatically in `AgentToolLoop.run()` using `config.toolResultBudgetTokens * 4` as the default limit.
+
+## Agent Memory
+
+Persistent cross-session memory distinct from session persistence and team memory:
+
+```swift
+let memory = FileMemoryStore()
+try await memory.save(MemoryEntry(
+    category: .feedback,
+    content: "User prefers terse responses",
+    tags: ["style"]
+))
+let entries = try await memory.retrieve(category: .user, limit: 10)
+let results = try await memory.search(query: "preferences", limit: 5)
+```
+
+Categories: `.user`, `.feedback`, `.project`, `.reference`, `.custom(String)`. Stored as JSON files in `~/.swiftsynapse/memory/`.
+
+## Conversation Recovery
+
+Validate and repair transcript integrity after interruptions:
+
+```swift
+let (repaired, violations) = recoverTranscript(transcript.entries)
+```
+
+Detects orphaned tool calls (no result), orphaned tool results (no call), and sequence violations. The default strategy appends synthetic error results for orphaned calls and removes orphaned results.
+
+## VCR Testing
+
+Deterministic agent testing via request/response recording and replay:
+
+```swift
+let store = FileFixtureStore(directoryPath: "Tests/Fixtures")
+let vcr = VCRClient(client: realClient, store: store, mode: .record)
+
+// Later, in CI:
+let vcr = VCRClient(client: realClient, store: store, mode: .replay)
+// No network calls — deterministic responses from fixtures
+```
+
+`VCRClient` conforms to `AgentLLMClient` and drops in anywhere a client is used.
+
+## Graceful Shutdown
+
+Coordinated resource cleanup on application termination:
+
+```swift
+let registry = ShutdownRegistry()
+await registry.register(name: "mcp") { await mcpManager.disconnectAll() }
+await registry.register(name: "plugins") { await pluginManager.deactivateAll() }
+SignalHandler.install(registry: registry)
+```
+
+Handlers run in reverse registration order (LIFO). Signal handlers for SIGINT and SIGTERM are installed via `DispatchSource`.

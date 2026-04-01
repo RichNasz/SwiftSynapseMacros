@@ -20,6 +20,8 @@ public enum AgentHookEventKind: Hashable, Sendable {
     case guardrailTriggered
     case coordinationPhaseStarted
     case coordinationPhaseCompleted
+    case memoryUpdated
+    case transcriptRepaired
 }
 
 // MARK: - Hook Events
@@ -47,6 +49,9 @@ public enum AgentHookEvent: Sendable {
     case coordinationPhaseStarted(phase: String)
     case coordinationPhaseCompleted(phase: String)
 
+    case memoryUpdated(entry: MemoryEntry)
+    case transcriptRepaired(violations: [IntegrityViolation])
+
     /// The kind of this event, for subscription filtering.
     public var kind: AgentHookEventKind {
         switch self {
@@ -64,6 +69,8 @@ public enum AgentHookEvent: Sendable {
         case .guardrailTriggered: .guardrailTriggered
         case .coordinationPhaseStarted: .coordinationPhaseStarted
         case .coordinationPhaseCompleted: .coordinationPhaseCompleted
+        case .memoryUpdated: .memoryUpdated
+        case .transcriptRepaired: .transcriptRepaired
         }
     }
 }

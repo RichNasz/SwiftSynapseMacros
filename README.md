@@ -321,6 +321,95 @@ await plugins.register(AuditPlugin())
 await plugins.activateAll(context: pluginContext)
 ```
 
+### Cost Tracking
+
+```swift
+let tracker = CostTracker()
+await tracker.setPricing(for: "claude-sonnet-4-20250514", pricing: ModelPricing(
+    inputCostPerMillionTokens: 3,
+    outputCostPerMillionTokens: 15
+))
+
+// Wire into telemetry — costs accumulate automatically
+let sink = CostTrackingTelemetrySink(tracker: tracker)
+let telemetry = CompositeTelemetrySink([sink, OSLogTelemetrySink()])
+
+// Query at any time
+let total = await tracker.totalCost()
+let byModel = await tracker.usageByModel()
+```
+
+### Rate Limiting
+
+```swift
+let rateLimitState = RateLimitState()
+
+try await AgentToolLoop.run(
+    client: client, config: config, goal: goal,
+    tools: tools, transcript: transcript,
+    rateLimitState: rateLimitState  // Rate-limit-aware retry
+)
+```
+
+Tracks cooldown state, parses Retry-After headers, jittered exponential backoff, separate from general retry logic.
+
+### System Prompt Composition
+
+```swift
+let builder = SystemPromptBuilder()
+await builder.addSection(SystemPromptSection(id: "role", content: "You are a support agent.", priority: 0))
+await builder.addDynamicSection(id: "context", priority: 100) { "Current time: \(Date())" }
+let systemPrompt = try await builder.build()
+```
+
+Tools can co-locate prompt instructions via `SystemPromptProvider` conformance.
+
+### Error Classification
+
+```swift
+let classified = classifyAPIError(error, model: "claude-sonnet-4-20250514")
+// classified.category: .auth, .quota, .rateLimit, .connectivity, .serverError, .badRequest, .unknown
+// classified.isRetryable: true/false
+```
+
+### Tool Result Truncation
+
+Oversized tool results are automatically truncated before entering the transcript, preserving the most recent output. Configurable via `TruncationPolicy`.
+
+### Agent Memory
+
+```swift
+let memory = FileMemoryStore()
+try await memory.save(MemoryEntry(category: .feedback, content: "User prefers terse responses"))
+let entries = try await memory.retrieve(category: .user, limit: 10)
+```
+
+Persistent cross-session memory with categories (`.user`, `.feedback`, `.project`, `.reference`), distinct from `TeamMemory` (coordination) and `SessionStore` (session snapshots).
+
+### Conversation Recovery
+
+```swift
+let (repaired, violations) = recoverTranscript(transcript.entries)
+// Repairs orphaned tool calls/results, validates sequence integrity
+```
+
+### VCR Testing
+
+```swift
+let store = FileFixtureStore(directoryPath: "Tests/Fixtures")
+let vcr = VCRClient(client: realClient, store: store, mode: .record) // or .replay
+// Use like any other AgentLLMClient — deterministic, no network calls in CI
+```
+
+### Graceful Shutdown
+
+```swift
+let registry = ShutdownRegistry()
+await registry.register(name: "mcp") { await mcpManager.disconnectAll() }
+await registry.register(name: "plugins") { await pluginManager.deactivateAll() }
+SignalHandler.install(registry: registry)
+```
+
 ## Telemetry
 
 Structured event emission to any backend:
@@ -329,10 +418,11 @@ Structured event emission to any backend:
 let telemetry = CompositeTelemetrySink([
     OSLogTelemetrySink(),          // Unified logging
     InMemoryTelemetrySink(),       // Testing
+    CostTrackingTelemetrySink(tracker: costTracker), // Cost accumulation
 ])
 ```
 
-11 event types: agent lifecycle, LLM calls (model, tokens, duration), tool calls (name, duration, success), retries, budget exhaustion, guardrail triggers, context compaction, plugin lifecycle.
+12 event types: agent lifecycle, LLM calls (model, tokens, cache tokens, duration), tool calls, retries, budget exhaustion, guardrail triggers, context compaction, API error classification, plugin lifecycle.
 
 ## SwiftUI Integration
 

@@ -55,6 +55,26 @@ public struct AgentResponse: Sendable {
     public let responseId: String?
     public let inputTokens: Int
     public let outputTokens: Int
+    public let cacheCreationTokens: Int
+    public let cacheReadTokens: Int
+
+    public init(
+        text: String?,
+        toolCalls: [AgentToolCall],
+        responseId: String?,
+        inputTokens: Int,
+        outputTokens: Int,
+        cacheCreationTokens: Int = 0,
+        cacheReadTokens: Int = 0
+    ) {
+        self.text = text
+        self.toolCalls = toolCalls
+        self.responseId = responseId
+        self.inputTokens = inputTokens
+        self.outputTokens = outputTokens
+        self.cacheCreationTokens = cacheCreationTokens
+        self.cacheReadTokens = cacheReadTokens
+    }
 
     /// Whether the model requested tool execution.
     public var requiresToolExecution: Bool {

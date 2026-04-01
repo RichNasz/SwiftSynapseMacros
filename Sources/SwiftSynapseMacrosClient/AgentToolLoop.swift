@@ -40,6 +40,7 @@ public enum AgentToolLoop {
     ///   - guardrails: Optional guardrail pipeline for input/output safety checks.
     ///   - progressDelegate: Optional delegate for receiving tool progress updates.
     ///   - compactionTrigger: When to trigger transcript compression. Defaults to 80% budget utilization.
+    ///   - rateLimitState: Optional rate limit state for rate-limit-aware retry behavior.
     /// - Returns: The final text response from the LLM.
     public static func run(
         client: any AgentLLMClient,
@@ -56,7 +57,8 @@ public enum AgentToolLoop {
         recovery: RecoveryChain? = .default,
         guardrails: GuardrailPipeline? = nil,
         progressDelegate: (any ToolProgressDelegate)? = nil,
-        compactionTrigger: CompactionTrigger = .default
+        compactionTrigger: CompactionTrigger = .default,
+        rateLimitState: RateLimitState? = nil
     ) async throws -> String {
         var previousResponseId: String? = nil
         var recoveryState = RecoveryState()
@@ -120,20 +122,38 @@ public enum AgentToolLoop {
                 }
             }
 
-            // Send with retry
+            // Send with retry (rate-limit-aware when state is provided)
             let llmStart = ContinuousClock.now
             let response: AgentResponse
             let requestToSend = request // capture immutable copy for Sendable closure
             do {
-                response = try await retryWithBackoff(
-                    maxAttempts: config.maxRetries,
-                    onRetry: { error, attempt in
-                        telemetry?.emit(TelemetryEvent(
-                            kind: .retryAttempted(error: error, attempt: attempt)
-                        ))
+                if let rateLimitState {
+                    response = try await retryWithRateLimit(
+                        rateLimitState: rateLimitState,
+                        telemetry: telemetry
+                    ) {
+                        try await retryWithBackoff(
+                            maxAttempts: config.maxRetries,
+                            onRetry: { error, attempt in
+                                telemetry?.emit(TelemetryEvent(
+                                    kind: .retryAttempted(error: error, attempt: attempt)
+                                ))
+                            }
+                        ) {
+                            try await client.send(requestToSend)
+                        }
                     }
-                ) {
-                    try await client.send(requestToSend)
+                } else {
+                    response = try await retryWithBackoff(
+                        maxAttempts: config.maxRetries,
+                        onRetry: { error, attempt in
+                            telemetry?.emit(TelemetryEvent(
+                                kind: .retryAttempted(error: error, attempt: attempt)
+                            ))
+                        }
+                    ) {
+                        try await client.send(requestToSend)
+                    }
                 }
             } catch {
                 // Attempt recovery from LLM errors
@@ -167,7 +187,9 @@ public enum AgentToolLoop {
                 model: config.modelName,
                 inputTokens: response.inputTokens,
                 outputTokens: response.outputTokens,
-                duration: llmDuration
+                duration: llmDuration,
+                cacheCreationTokens: response.cacheCreationTokens,
+                cacheReadTokens: response.cacheReadTokens
             )))
 
             // Fire post-LLM hook
@@ -285,11 +307,13 @@ public enum AgentToolLoop {
                 )))
             }
 
-            // Record tool results in transcript
+            // Record tool results in transcript (truncate oversized results)
+            let truncationPolicy = TruncationPolicy.fromConfig(config)
             for result in results {
+                let truncatedOutput = ResultTruncator.truncate(result.output, policy: truncationPolicy)
                 let entry = TranscriptEntry.toolResult(
                     name: result.name,
-                    result: result.output,
+                    result: truncatedOutput,
                     duration: result.duration
                 )
                 transcript.append(entry)
@@ -441,7 +465,9 @@ public enum AgentToolLoop {
                 model: config.modelName,
                 inputTokens: inputTokens,
                 outputTokens: outputTokens,
-                duration: llmDuration
+                duration: llmDuration,
+                cacheCreationTokens: 0,
+                cacheReadTokens: 0
             )))
 
             if let hooks {

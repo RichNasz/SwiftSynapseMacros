@@ -230,11 +230,13 @@ public struct RecoveryChain: Sendable {
 
 /// Classifies an error as recoverable or not.
 ///
-/// Used by the tool loop to decide whether to attempt recovery strategies.
+/// Delegates to `classifyAPIError()` for semantic classification, then maps
+/// relevant categories to `RecoverableError` cases.
 public func classifyRecoverableError(_ error: Error) -> RecoverableError? {
-    let description = String(describing: error).lowercased()
+    let classified = classifyAPIError(error)
 
-    // Context window / token limit exceeded
+    // Check for context window exhaustion via error description
+    let description = String(describing: error).lowercased()
     if description.contains("context_length_exceeded")
         || description.contains("context window")
         || description.contains("maximum context length")
@@ -242,12 +244,17 @@ public func classifyRecoverableError(_ error: Error) -> RecoverableError? {
         return .contextWindowExceeded
     }
 
-    // Output truncated
+    // Check for output truncation
     if description.contains("max_tokens")
         || description.contains("length_limit")
         || description.contains("output truncated")
         || description.contains("maximum output") {
         return .outputTruncated
+    }
+
+    // Map retryable API errors to apiError for recovery
+    if classified.isRetryable {
+        return .apiError(error)
     }
 
     return nil
