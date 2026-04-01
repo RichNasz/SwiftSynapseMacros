@@ -1,0 +1,50 @@
+name: Deploy DocC to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # Requires Swift 6.2+. Update the Xcode version below when a compatible
+    # runner is available on GitHub Actions (Xcode 26 / Swift 6.2+).
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select latest Xcode
+        run: sudo xcode-select -s $(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+
+      - name: Generate DocC static site
+        run: |
+          swift package --disable-sandbox generate-documentation \
+            --target SwiftSynapseMacrosClient \
+            --transform-for-static-hosting \
+            --hosting-base-path SwiftSynapseMacros \
+            --output-path ./docs
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

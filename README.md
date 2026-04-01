@@ -13,6 +13,20 @@ SwiftSynapseMacros provides:
 
 For the full agent runtime — tool loop, hooks, permissions, streaming, recovery, MCP, multi-agent coordination, and SwiftUI views — see [SwiftSynapseHarness](https://github.com/RichNasz/SwiftSynapseHarness).
 
+## Documentation
+
+The full documentation is available as DocC via two paths:
+
+**[Browse on GitHub Pages](https://richnasz.github.io/SwiftSynapseMacros/documentation/swiftsynapsemacrosclient/)** — no Xcode required. Deployed automatically on push to `main`.
+
+**Xcode Developer Documentation** — richest experience during development:
+
+1. Open this project (or any project that depends on it) in Xcode.
+2. Choose **Product > Build Documentation** (or open the Documentation window).
+3. Navigate to **SwiftSynapseMacros** in the documentation navigator.
+
+Both paths cover all macro reference pages, HowTo guides, and integration guides. The README covers installation and orientation only.
+
 ## Package Architecture
 
 ### Why this is a separate package

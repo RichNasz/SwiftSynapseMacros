@@ -13,6 +13,7 @@
    - **Title:** `SwiftSynapseMacros`
    - **Tagline:** One-line description of the package
    - **Overview:** 2-3 sentences. Covers only what actually lives in this package: macros that generate agent scaffolding, and the core types that macro-generated code depends on. Does NOT mention SwiftSynapseUI (which lives in SwiftSynapseHarness).
+   - **Documentation:** Two paths for reading the full documentation: (1) hosted on GitHub Pages at the project's Pages URL, (2) locally in Xcode via Product > Build Documentation. The GitHub Pages link is the easiest entry point; Xcode is the richest experience during development.
    - **Package Architecture:** (see section 3 below)
    - **Requirements:** Swift version, platforms
    - **Installation:** (see section 4 below)
@@ -27,6 +28,35 @@
 4. Usage examples should be minimal and self-contained.
 
 5. Do not include build badges, CI status, or external service links unless they exist.
+
+---
+
+## Section 2a: Documentation
+
+This section should appear immediately after the Overview (before Package Architecture) to orient users early.
+
+### Content to convey:
+
+The full documentation for this package is available as DocC via two paths:
+
+**GitHub Pages (easiest — no Xcode required):**
+Browse the hosted docs at:
+`https://richnasz.github.io/SwiftSynapseMacros/documentation/swiftsynapsemacrosclient/`
+
+**Xcode Developer Documentation (richest experience during development):**
+
+1. Open the project or any project that depends on this package in Xcode.
+2. Choose **Product > Build Documentation** (or open the Documentation window via the menu).
+3. Navigate to **SwiftSynapseMacros** in the documentation navigator.
+
+Both paths render the same macro reference pages, HowTo guides, and integration guides. The `README` covers installation and orientation only; the DocC documentation covers usage in depth.
+
+### Formatting guidance:
+
+- Lead with the GitHub Pages link — it works without any tooling.
+- Use a numbered list for the Xcode steps (they are sequential).
+- Do not duplicate DocC content in the README.
+- The GitHub Pages docs are deployed automatically on push to `main` via `.github/workflows/deploy-docs.yml`.
 
 ---
 
