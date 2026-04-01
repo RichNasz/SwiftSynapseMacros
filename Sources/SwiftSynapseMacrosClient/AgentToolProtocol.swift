@@ -100,12 +100,16 @@ struct AnyAgentTool: Sendable {
     let name: String
     let definition: FunctionToolParam
     let isConcurrencySafe: Bool
+    let supportsProgress: Bool
     private let _execute: @Sendable (String) async throws -> String
+    private let _executeWithProgress: @Sendable (String, String, any ToolProgressDelegate) async throws -> String
 
     init<T: AgentToolProtocol>(_ tool: T) {
         self.name = T.name
         self.definition = T.inputSchema
         self.isConcurrencySafe = T.isConcurrencySafe
+        self.supportsProgress = tool is any ProgressReportingTool
+
         self._execute = { arguments in
             let data = Data(arguments.utf8)
             let input: T.Input
@@ -136,9 +140,80 @@ struct AnyAgentTool: Sendable {
                 throw ToolDispatchError.encodingFailed(tool: T.name, error)
             }
         }
+
+        // Progress-aware execute: uses ProgressReportingTool if available
+        if let progressTool = tool as? any ProgressReportingTool {
+            self._executeWithProgress = { arguments, callId, delegate in
+                try await Self._executeProgressTool(progressTool, arguments: arguments, callId: callId, delegate: delegate)
+            }
+        } else {
+            self._executeWithProgress = { arguments, _, _ in
+                let data = Data(arguments.utf8)
+                let input: T.Input
+                do {
+                    input = try JSONDecoder().decode(T.Input.self, from: data)
+                } catch {
+                    throw ToolDispatchError.decodingFailed(tool: T.name, error)
+                }
+                let output = try await tool.execute(input: input)
+                if let stringOutput = output as? String {
+                    return stringOutput
+                }
+                do {
+                    let encoded = try JSONEncoder().encode(output)
+                    guard let result = String(data: encoded, encoding: .utf8) else {
+                        throw ToolDispatchError.encodingFailed(
+                            tool: T.name,
+                            NSError(domain: "AgentTool", code: -1,
+                                    userInfo: [NSLocalizedDescriptionKey: "UTF-8 encoding failed"])
+                        )
+                    }
+                    return result
+                } catch let error as ToolDispatchError {
+                    throw error
+                } catch {
+                    throw ToolDispatchError.encodingFailed(tool: T.name, error)
+                }
+            }
+        }
+    }
+
+    private static func _executeProgressTool<T: ProgressReportingTool>(
+        _ tool: T, arguments: String, callId: String, delegate: any ToolProgressDelegate
+    ) async throws -> String {
+        let data = Data(arguments.utf8)
+        let input: T.Input
+        do {
+            input = try JSONDecoder().decode(T.Input.self, from: data)
+        } catch {
+            throw ToolDispatchError.decodingFailed(tool: T.name, error)
+        }
+        let output = try await tool.execute(input: input, callId: callId, progress: delegate)
+        if let stringOutput = output as? String {
+            return stringOutput
+        }
+        do {
+            let encoded = try JSONEncoder().encode(output)
+            guard let result = String(data: encoded, encoding: .utf8) else {
+                throw ToolDispatchError.encodingFailed(
+                    tool: T.name,
+                    NSError(domain: "AgentTool", code: -1,
+                            userInfo: [NSLocalizedDescriptionKey: "UTF-8 encoding failed"])
+                )
+            }
+            return result
+        } catch let error as ToolDispatchError {
+            throw error
+        } catch {
+            throw ToolDispatchError.encodingFailed(tool: T.name, error)
+        }
     }
 
     func execute(arguments: String) async throws -> String {
         try await _execute(arguments)
+    }
+
+    func execute(arguments: String, callId: String, progress: any ToolProgressDelegate) async throws -> String {
+        try await _executeWithProgress(arguments, callId, progress)
     }
 }

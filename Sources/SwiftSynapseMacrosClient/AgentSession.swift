@@ -7,6 +7,9 @@ import Foundation
 /// Agents create `AgentSession` values via `currentSession()`.
 /// Persistence (disk, iCloud, etc.) is the caller's responsibility.
 public struct AgentSession: Codable, Sendable {
+    /// Unique identifier for this session.
+    public let sessionId: String
+
     /// The Swift type name of the actor (e.g., "LLMChat").
     public let agentType: String
 
@@ -29,6 +32,7 @@ public struct AgentSession: Codable, Sendable {
     public let savedAt: Date
 
     public init(
+        sessionId: String = UUID().uuidString,
         agentType: String,
         goal: String,
         transcriptEntries: [CodableTranscriptEntry],
@@ -37,6 +41,7 @@ public struct AgentSession: Codable, Sendable {
         createdAt: Date = Date(),
         savedAt: Date = Date()
     ) {
+        self.sessionId = sessionId
         self.agentType = agentType
         self.goal = goal
         self.transcriptEntries = transcriptEntries

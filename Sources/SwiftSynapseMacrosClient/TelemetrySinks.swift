@@ -29,6 +29,14 @@ public struct OSLogTelemetrySink: TelemetrySink {
             logger.warning("Retry attempt \(attempt): \(error.localizedDescription, privacy: .public)")
         case .tokenBudgetExhausted(let used, let limit):
             logger.warning("Token budget exhausted: \(used)/\(limit)")
+        case .guardrailTriggered(let policy, let risk):
+            logger.warning("Guardrail triggered: \(policy, privacy: .public) risk=\(risk.rawValue, privacy: .public)")
+        case .contextCompacted(let before, let after, let strategy):
+            logger.info("Context compacted [\(strategy, privacy: .public)]: \(before) → \(after) entries")
+        case .pluginActivated(let name):
+            logger.info("Plugin activated: \(name, privacy: .public)")
+        case .pluginError(let name, let error):
+            logger.error("Plugin error [\(name, privacy: .public)]: \(error.localizedDescription, privacy: .public)")
         }
     }
 }

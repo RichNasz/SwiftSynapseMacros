@@ -70,8 +70,13 @@ public final class ToolRegistry: @unchecked Sendable {
         tool(named: toolName)?.isConcurrencySafe ?? false
     }
 
-    /// Dispatches a single tool call by name.
-    public func dispatch(name: String, callId: String, arguments: String) async throws -> ToolResult {
+    /// Dispatches a single tool call by name with optional progress reporting.
+    public func dispatch(
+        name: String,
+        callId: String,
+        arguments: String,
+        progressDelegate: (any ToolProgressDelegate)? = nil
+    ) async throws -> ToolResult {
         guard let tool = tool(named: name) else {
             throw ToolDispatchError.unknownTool(name)
         }
@@ -83,7 +88,12 @@ public final class ToolRegistry: @unchecked Sendable {
 
         let start = ContinuousClock.now
         do {
-            let output = try await tool.execute(arguments: arguments)
+            let output: String
+            if let delegate = progressDelegate {
+                output = try await tool.execute(arguments: arguments, callId: callId, progress: delegate)
+            } else {
+                output = try await tool.execute(arguments: arguments)
+            }
             let duration = ContinuousClock.now - start
             return ToolResult(callId: callId, name: name, output: output, duration: duration, success: true)
         } catch let error as ToolDispatchError {
@@ -108,7 +118,10 @@ public final class ToolRegistry: @unchecked Sendable {
     ///
     /// Tools marked as `isConcurrencySafe` run in a `TaskGroup`. Unsafe tools
     /// run sequentially after all safe tools complete.
-    public func dispatchBatch(_ calls: [AgentToolCall]) async throws -> [ToolResult] {
+    public func dispatchBatch(
+        _ calls: [AgentToolCall],
+        progressDelegate: (any ToolProgressDelegate)? = nil
+    ) async throws -> [ToolResult] {
         var safeCalls: [AgentToolCall] = []
         var unsafeCalls: [AgentToolCall] = []
 
@@ -130,7 +143,7 @@ public final class ToolRegistry: @unchecked Sendable {
             let safeResults = try await withThrowingTaskGroup(of: ToolResult.self) { group in
                 for call in safeCalls {
                     group.addTask {
-                        try await self.dispatch(name: call.name, callId: call.id, arguments: call.arguments)
+                        try await self.dispatch(name: call.name, callId: call.id, arguments: call.arguments, progressDelegate: progressDelegate)
                     }
                 }
                 var collected: [ToolResult] = []
@@ -144,7 +157,7 @@ public final class ToolRegistry: @unchecked Sendable {
 
         // Run unsafe tools sequentially
         for call in unsafeCalls {
-            let result = try await dispatch(name: call.name, callId: call.id, arguments: call.arguments)
+            let result = try await dispatch(name: call.name, callId: call.id, arguments: call.arguments, progressDelegate: progressDelegate)
             results.append(result)
         }
 

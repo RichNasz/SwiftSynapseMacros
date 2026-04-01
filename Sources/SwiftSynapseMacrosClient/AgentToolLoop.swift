@@ -37,6 +37,9 @@ public enum AgentToolLoop {
     ///   - budget: Optional context budget for token tracking.
     ///   - compressor: Optional transcript compressor for context management.
     ///   - recovery: Optional recovery chain for error recovery. Defaults to `.default`.
+    ///   - guardrails: Optional guardrail pipeline for input/output safety checks.
+    ///   - progressDelegate: Optional delegate for receiving tool progress updates.
+    ///   - compactionTrigger: When to trigger transcript compression. Defaults to 80% budget utilization.
     /// - Returns: The final text response from the LLM.
     public static func run(
         client: any AgentLLMClient,
@@ -50,7 +53,10 @@ public enum AgentToolLoop {
         telemetry: (any TelemetrySink)? = nil,
         budget: inout ContextBudget?,
         compressor: (any TranscriptCompressor)? = nil,
-        recovery: RecoveryChain? = .default
+        recovery: RecoveryChain? = .default,
+        guardrails: GuardrailPipeline? = nil,
+        progressDelegate: (any ToolProgressDelegate)? = nil,
+        compactionTrigger: CompactionTrigger = .default
     ) async throws -> String {
         var previousResponseId: String? = nil
         var recoveryState = RecoveryState()
@@ -64,14 +70,20 @@ public enum AgentToolLoop {
         for iteration in 0..<maxIterations {
             try Task.checkCancellation()
 
-            // Compress transcript if budget is running low
-            if let currentBudget = budget, let comp = compressor,
-               currentBudget.utilizationPercentage > 0.8 {
+            // Compress transcript if compaction trigger fires
+            if let comp = compressor,
+               compactionTrigger.shouldCompact(budget: budget, entryCount: transcript.entries.count) {
+                let entriesBefore = transcript.entries.count
                 let compressed = try await comp.compress(
                     entries: transcript.entries,
-                    budget: currentBudget
+                    budget: budget ?? ContextBudget(maxTokens: Int.max)
                 )
                 transcript.sync(from: compressed)
+                telemetry?.emit(TelemetryEvent(kind: .contextCompacted(
+                    entriesBefore: entriesBefore,
+                    entriesAfter: compressed.count,
+                    strategy: String(describing: type(of: comp))
+                )))
             }
 
             var userPrompt = iteration == 0 ? goal : ""
@@ -167,7 +179,31 @@ public enum AgentToolLoop {
 
             // If no tool calls, we're done
             if !response.requiresToolExecution {
-                let result = response.text ?? ""
+                var result = response.text ?? ""
+
+                // Check guardrails on LLM output
+                if let guardrails {
+                    let (decision, policy) = await guardrails.evaluate(input: .llmOutput(text: result))
+                    switch decision {
+                    case .block(let reason):
+                        if let policy {
+                            telemetry?.emit(TelemetryEvent(kind: .guardrailTriggered(policy: policy, risk: .high)))
+                            if let hooks {
+                                await hooks.fire(.guardrailTriggered(
+                                    policy: policy,
+                                    decision: decision,
+                                    input: .llmOutput(text: result)
+                                ))
+                            }
+                        }
+                        throw GuardrailError.blocked(policy: policy ?? "unknown", reason: reason)
+                    case .sanitize(let replacement):
+                        result = replacement
+                    case .warn, .allow:
+                        break
+                    }
+                }
+
                 let entry = TranscriptEntry.assistantMessage(result)
                 transcript.append(entry)
                 if let hooks {
@@ -199,8 +235,46 @@ public enum AgentToolLoop {
                 }
             }
 
+            // Check guardrails on tool arguments
+            if let guardrails {
+                for call in response.toolCalls {
+                    let (decision, policy) = await guardrails.evaluate(
+                        input: .toolArguments(toolName: call.name, arguments: call.arguments)
+                    )
+                    switch decision {
+                    case .block(let reason):
+                        if let policy {
+                            telemetry?.emit(TelemetryEvent(kind: .guardrailTriggered(policy: policy, risk: .high)))
+                            if let hooks {
+                                await hooks.fire(.guardrailTriggered(
+                                    policy: policy,
+                                    decision: decision,
+                                    input: .toolArguments(toolName: call.name, arguments: call.arguments)
+                                ))
+                            }
+                        }
+                        throw GuardrailError.blocked(policy: policy ?? "unknown", reason: reason)
+                    case .warn(_):
+                        if let policy {
+                            telemetry?.emit(TelemetryEvent(kind: .guardrailTriggered(policy: policy, risk: .low)))
+                            if let hooks {
+                                await hooks.fire(.guardrailTriggered(
+                                    policy: policy,
+                                    decision: decision,
+                                    input: .toolArguments(toolName: call.name, arguments: call.arguments)
+                                ))
+                            }
+                        }
+                        // Warn but proceed
+                        break
+                    case .allow, .sanitize:
+                        break
+                    }
+                }
+            }
+
             // Dispatch tools
-            let results = try await tools.dispatchBatch(response.toolCalls)
+            let results = try await tools.dispatchBatch(response.toolCalls, progressDelegate: progressDelegate)
 
             // Emit per-tool telemetry
             for result in results {
@@ -428,7 +502,9 @@ public enum AgentToolLoop {
         systemPrompt: String? = nil,
         maxIterations: Int = 10,
         hooks: AgentHookPipeline? = nil,
-        telemetry: (any TelemetrySink)? = nil
+        telemetry: (any TelemetrySink)? = nil,
+        guardrails: GuardrailPipeline? = nil,
+        progressDelegate: (any ToolProgressDelegate)? = nil
     ) async throws -> String {
         var budget: ContextBudget? = nil
         return try await run(
@@ -443,7 +519,9 @@ public enum AgentToolLoop {
             telemetry: telemetry,
             budget: &budget,
             compressor: nil,
-            recovery: .default
+            recovery: .default,
+            guardrails: guardrails,
+            progressDelegate: progressDelegate
         )
     }
 }

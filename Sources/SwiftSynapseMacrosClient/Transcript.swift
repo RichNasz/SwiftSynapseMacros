@@ -7,6 +7,8 @@ public final class ObservableTranscript: @unchecked Sendable {
     public private(set) var entries: [TranscriptEntry] = []
     public private(set) var isStreaming: Bool = false
     public private(set) var streamingText: String = ""
+    /// Active tool progress updates, keyed by callId.
+    public private(set) var toolProgress: [String: ToolProgressUpdate] = [:]
 
     public init() {}
 
@@ -29,10 +31,21 @@ public final class ObservableTranscript: @unchecked Sendable {
         streamingText += text
     }
 
+    /// Updates tool progress for a given call ID.
+    public func updateToolProgress(_ update: ToolProgressUpdate) {
+        toolProgress[update.callId] = update
+    }
+
+    /// Clears tool progress for a completed call.
+    public func clearToolProgress(callId: String) {
+        toolProgress.removeValue(forKey: callId)
+    }
+
     public func reset() {
         entries = []
         isStreaming = false
         streamingText = ""
+        toolProgress = [:]
     }
 
     /// Restores transcript state from a saved session.

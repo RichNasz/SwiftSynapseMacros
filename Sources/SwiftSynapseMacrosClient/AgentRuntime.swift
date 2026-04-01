@@ -38,7 +38,9 @@ public func agentRun<A: AgentExecutable>(
     agent: isolated A,
     goal: String,
     hooks: AgentHookPipeline? = nil,
-    telemetry: (any TelemetrySink)? = nil
+    telemetry: (any TelemetrySink)? = nil,
+    sessionStore: (any SessionStore)? = nil,
+    sessionAgentType: String? = nil
 ) async throws -> String {
     // 1. Validate
     guard !goal.isEmpty else {
@@ -79,6 +81,19 @@ public func agentRun<A: AgentExecutable>(
             await hooks.fire(.agentCancelled)
         }
         telemetry?.emit(TelemetryEvent(kind: .agentFailed(error: CancellationError())))
+        // Auto-save paused session
+        if let store = sessionStore {
+            let session = AgentSession(
+                agentType: sessionAgentType ?? String(describing: type(of: agent)),
+                goal: goal,
+                transcriptEntries: agent._transcript.entries.map { CodableTranscriptEntry(from: $0) },
+                completedStepIndex: agent._transcript.entries.count - 1
+            )
+            try? await store.save(session)
+            if let hooks {
+                await hooks.fire(.sessionSaved(sessionId: session.sessionId))
+            }
+        }
         throw CancellationError()
     } catch {
         agent._status = .error(error)
@@ -86,6 +101,16 @@ public func agentRun<A: AgentExecutable>(
             await hooks.fire(.agentFailed(error: error))
         }
         telemetry?.emit(TelemetryEvent(kind: .agentFailed(error: error)))
+        // Auto-save failed session
+        if let store = sessionStore {
+            let session = AgentSession(
+                agentType: sessionAgentType ?? String(describing: type(of: agent)),
+                goal: goal,
+                transcriptEntries: agent._transcript.entries.map { CodableTranscriptEntry(from: $0) },
+                completedStepIndex: agent._transcript.entries.count - 1
+            )
+            try? await store.save(session)
+        }
         throw error
     }
 
@@ -97,6 +122,20 @@ public func agentRun<A: AgentExecutable>(
         await hooks.fire(.agentCompleted(result: result))
     }
     telemetry?.emit(TelemetryEvent(kind: .agentCompleted(result: result, duration: duration)))
+
+    // Auto-save completed session
+    if let store = sessionStore {
+        let session = AgentSession(
+            agentType: sessionAgentType ?? String(describing: type(of: agent)),
+            goal: goal,
+            transcriptEntries: agent._transcript.entries.map { CodableTranscriptEntry(from: $0) },
+            completedStepIndex: agent._transcript.entries.count - 1
+        )
+        try? await store.save(session)
+        if let hooks {
+            await hooks.fire(.sessionSaved(sessionId: session.sessionId))
+        }
+    }
 
     return result
 }

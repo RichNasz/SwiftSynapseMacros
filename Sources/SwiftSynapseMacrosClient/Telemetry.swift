@@ -37,6 +37,13 @@ public enum TelemetryEventKind: Sendable {
     case retryAttempted(error: Error, attempt: Int)
 
     case tokenBudgetExhausted(used: Int, limit: Int)
+
+    case guardrailTriggered(policy: String, risk: RiskLevel)
+
+    case contextCompacted(entriesBefore: Int, entriesAfter: Int, strategy: String)
+
+    case pluginActivated(name: String)
+    case pluginError(name: String, error: Error)
 }
 
 // MARK: - Telemetry Sink
