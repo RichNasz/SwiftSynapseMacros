@@ -15,6 +15,15 @@ This directory contains the specifications that serve as the single source of tr
 | [Client-Types.md](Client-Types.md) | `Sources/SwiftSynapseMacrosClient/AgentTool.swift`, `TextFormat.swift`, `Transcript.swift`, `AgentStatus.swift`, `AgentExecutable.swift`, `AgentGoalMetadata.swift`, `ToolProgressUpdate.swift`, `Macros.swift` |
 | [Tests.md](Tests.md) | `Tests/SwiftSynapseMacrosTests/MacroExpansionTests.swift` |
 | [README-Generation.md](README-Generation.md) | `README.md` (root) |
+| [Docs-SpecDrivenAgent.md](Docs-SpecDrivenAgent.md) | `Sources/SwiftSynapseMacrosClient/SwiftSynapseMacrosClient.docc/SpecDrivenAgent.md` |
+| [Docs-StructuredOutput.md](Docs-StructuredOutput.md) | `Sources/SwiftSynapseMacrosClient/SwiftSynapseMacrosClient.docc/StructuredOutput.md` |
+| [Docs-Capability.md](Docs-Capability.md) | `Sources/SwiftSynapseMacrosClient/SwiftSynapseMacrosClient.docc/Capability.md` |
+| [Docs-AgentGoal.md](Docs-AgentGoal.md) | `Sources/SwiftSynapseMacrosClient/SwiftSynapseMacrosClient.docc/AgentGoal.md` |
+| [Docs-HowTo-SpecDrivenAgent.md](Docs-HowTo-SpecDrivenAgent.md) | `Sources/SwiftSynapseMacrosClient/SwiftSynapseMacrosClient.docc/HowTo-SpecDrivenAgent.md` |
+| [Docs-HowTo-StructuredOutput.md](Docs-HowTo-StructuredOutput.md) | `Sources/SwiftSynapseMacrosClient/SwiftSynapseMacrosClient.docc/HowTo-StructuredOutput.md` |
+| [Docs-HowTo-Capability.md](Docs-HowTo-Capability.md) | `Sources/SwiftSynapseMacrosClient/SwiftSynapseMacrosClient.docc/HowTo-Capability.md` |
+| [Docs-HowTo-AgentGoal.md](Docs-HowTo-AgentGoal.md) | `Sources/SwiftSynapseMacrosClient/SwiftSynapseMacrosClient.docc/HowTo-AgentGoal.md` |
+| [Docs-HowTo-CombiningMacros.md](Docs-HowTo-CombiningMacros.md) | `Sources/SwiftSynapseMacrosClient/SwiftSynapseMacrosClient.docc/HowTo-CombiningMacros.md` |
 
 ## SwiftSynapseUI
 

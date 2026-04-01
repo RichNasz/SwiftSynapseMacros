@@ -18,9 +18,7 @@ SwiftSynapseMacros provides the foundational layer for the [SwiftSynapse](https:
 
 - **Swift macros** that generate agent scaffolding (`@SpecDrivenAgent`, `@StructuredOutput`, `@Capability`, `@AgentGoal`)
 - **Core types** used by macro-generated code (`AgentStatus`, `ObservableTranscript`, `AgentExecutable`, `ToolProgressUpdate`)
-- **SwiftUI components** via `SwiftSynapseUI` for drop-in agent interfaces
-
-For the full agent harness (tool loop, hooks, permissions, streaming, recovery, MCP, multi-agent coordination), see [SwiftSynapseHarness](https://github.com/RichNasz/SwiftSynapseHarness).
+For the full agent runtime — tool loop, hooks, permissions, streaming, recovery, MCP, multi-agent coordination, and SwiftUI views — see [SwiftSynapseHarness](https://github.com/RichNasz/SwiftSynapseHarness).
 
 ### How It Works
 
@@ -58,11 +56,18 @@ actor CustomerSupportAgent {
 - <doc:MacroReference>
 - <doc:IntegrationGuide>
 
-### Macros
-- ``SpecDrivenAgent()``
-- ``StructuredOutput()``
-- ``Capability()``
-- ``AgentGoal()``
+### Macro Reference
+- <doc:SpecDrivenAgent>
+- <doc:Capability>
+- <doc:StructuredOutput>
+- <doc:AgentGoal>
+
+### How-To Guides
+- <doc:HowTo-SpecDrivenAgent>
+- <doc:HowTo-Capability>
+- <doc:HowTo-StructuredOutput>
+- <doc:HowTo-AgentGoal>
+- <doc:HowTo-CombiningMacros>
 
 ### Core Types
 - ``AgentExecutable``
