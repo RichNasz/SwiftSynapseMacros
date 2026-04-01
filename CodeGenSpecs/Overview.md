@@ -13,6 +13,8 @@ This directory contains the specifications that serve as the single source of tr
 | [Macros-Capability.md](Macros-Capability.md) | `Sources/SwiftSynapseMacros/CapabilityMacro.swift` |
 | [Macros-AgentGoal.md](Macros-AgentGoal.md) | `Sources/SwiftSynapseMacros/AgentGoalMacro.swift` |
 | [Client-Types.md](Client-Types.md) | `Sources/SwiftSynapseMacrosClient/AgentTool.swift`, `TextFormat.swift`, `SwiftSynapseError.swift`, `Transcript.swift`, `AgentStatus.swift`, `AgentRuntime.swift`, `AgentGoalMetadata.swift`, `Macros.swift` |
+| [Client-AgentHarness.md](Client-AgentHarness.md) | `AgentToolProtocol.swift`, `ToolRegistry.swift`, `AgentToolLoop.swift`, `StreamingToolExecutor.swift`, `AgentHook.swift`, `AgentHookPipeline.swift`, `Permission.swift`, `ToolListPolicy.swift`, `AgentLLMClient.swift`, `AgentConfiguration.swift`, `AgentSession.swift`, `RetryWithBackoff.swift`, `RecoveryStrategy.swift`, `ContextBudget.swift`, `Telemetry.swift`, `TelemetrySinks.swift`, `SubagentContext.swift` |
+| [Client-Production.md](Client-Production.md) | `SessionPersistence.swift`, `Guardrails.swift`, `ToolProgress.swift`, `MCP.swift`, `ContextCompression.swift`, `ConfigurationHierarchy.swift`, `Caching.swift`, `DenialTracking.swift`, `AgentCoordination.swift`, `PluginSystem.swift` |
 | [Tests.md](Tests.md) | `Tests/SwiftSynapseMacrosTests/MacroExpansionTests.swift` |
 | [README-Generation.md](README-Generation.md) | `README.md` (root) |
 

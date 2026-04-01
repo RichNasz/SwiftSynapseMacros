@@ -1,14 +1,14 @@
 # Macro Reference
 
-Detailed reference for all three SwiftSynapseMacros macros.
+Detailed reference for all four SwiftSynapseMacros macros.
 
 ## Overview
 
-SwiftSynapseMacros provides three attached member macros. Each generates members on the annotated declaration and emits compile-time diagnostics if applied to the wrong declaration kind.
+SwiftSynapseMacros provides four attached macros. Each generates members on the annotated declaration and emits compile-time diagnostics if applied to the wrong declaration kind.
 
 ## @SpecDrivenAgent
 
-Generates a complete agent scaffold on an `actor` declaration.
+Generates lifecycle scaffolding on an `actor` declaration: `_status`, `_transcript`, `status`, `transcript`, `run(goal:)`, and `AgentExecutable` conformance.
 
 ### Target Type
 
@@ -20,45 +20,59 @@ Generates a complete agent scaffold on an `actor` declaration.
 
 | Member | Kind | Type | Access |
 |--------|------|------|--------|
-| `Status` | enum | `String, Sendable` | internal |
-| `_status` | stored property | `Status` | private |
-| `_transcript` | stored property | `[TranscriptEntry]` | private |
-| `_dslAgent` | stored property | `LLMClient?` | private |
-| `status` | computed property | `Status` | internal |
-| `isRunning` | computed property | `Bool` | internal |
-| `transcript` | computed property | `[TranscriptEntry]` | internal |
-| `client` | stored property | `LLMClient?` | internal |
-| `run(_:)` | method | `async throws -> String` | internal |
+| `_status` | stored property | `AgentStatus` | private |
+| `_transcript` | stored property | `ObservableTranscript` | private |
+| `status` | computed property | `AgentStatus` | internal |
+| `transcript` | computed property | `ObservableTranscript` | internal |
+| `run(goal:)` | method | `async throws -> String` | internal |
 
-### Status Enum Cases
+### AgentStatus Cases
 
-- `idle` -- initial state
-- `running` -- after `run(_:)` is called
-- `completed` -- after successful response
-- `failed` -- after an error
+- `idle` — initial state
+- `running` — after `run(goal:)` is called
+- `paused` — agent paused
+- `error(Error)` — after a failure
+- `completed(Any)` — after successful completion with result
 
-### run(_:) Behavior
+### run(goal:) Behavior
 
-1. Guards that `client` is non-nil (throws `SwiftSynapseError.clientNotInjected`)
-2. Sets status to `.running`
-3. Calls `client.chat(model:message:)`
-4. Extracts text content from assistant response
-5. Appends user and assistant `TranscriptEntry` to transcript
-6. Sets status to `.completed` and returns result
-7. On error: sets status to `.failed` and rethrows
+The generated `run(goal:)` calls the free function `agentRun()`, which:
+
+1. Validates the goal is non-empty
+2. Sets status to `.running` and resets transcript
+3. Fires `.agentStarted` hook (can block)
+4. Emits `.agentStarted` telemetry
+5. Calls your `execute(goal:)` with domain logic
+6. On success: sets status to `.completed`, fires `.agentCompleted` hook, emits telemetry
+7. On cancellation: sets status to `.idle`, fires `.agentCancelled` hook
+8. On error: sets status to `.error`, fires `.agentFailed` hook, emits telemetry
+9. Optionally saves session via `SessionStore`
 
 ### Example
 
 ```swift
 @SpecDrivenAgent
 actor MyAgent {
-    // All members above are generated automatically
+    private let config: AgentConfiguration
+
+    init(configuration: AgentConfiguration) throws {
+        self.config = configuration
+    }
+
+    // You implement this — the macro generates run(goal:)
+    func execute(goal: String) async throws -> String {
+        let client = try config.buildClient()
+        return try await AgentToolLoop.run(
+            client: client, config: config, goal: goal,
+            tools: ToolRegistry(), transcript: _transcript
+        )
+    }
 }
 ```
 
 ## @StructuredOutput
 
-Generates a `textFormat` static property on a `struct` declaration.
+Generates a `textFormat` static property on a `struct` declaration for JSON schema output formatting.
 
 ### Target Type
 
@@ -72,29 +86,27 @@ Generates a `textFormat` static property on a `struct` declaration.
 |--------|------|------|--------|
 | `textFormat` | static computed property | `TextFormat` | internal |
 
-The generated property returns `.jsonSchema(name: "<TypeName>", schema: Self.jsonSchema, strict: true)`, where `<TypeName>` is the struct's name extracted at compile time.
-
-### Prerequisites
-
-The struct must have a `jsonSchema` static property, typically provided by `@LLMToolArguments` conformance from SwiftLLMToolMacros.
+The generated property returns `.jsonSchema(name: "<TypeName>", schema: Self.jsonSchema, strict: true)`. The struct must have a `jsonSchema` static property, typically provided by `@LLMToolArguments`.
 
 ### Example
 
 ```swift
+@LLMToolArguments
 @StructuredOutput
 struct SearchResult {
-    // Requires @LLMToolArguments conformance for Self.jsonSchema
-    // Generates: static var textFormat: TextFormat
+    let title: String
+    let url: String
+    let relevance: Double
 }
 ```
 
 ## @Capability
 
-Generates an `agentTools()` method on a `struct` or `class` declaration.
+Generates an `agentTools()` method bridging `@LLMTool` types to `AgentToolDefinition`.
 
 ### Target Type
 
-`struct` or `class`. Applying to any other declaration kind (enum, actor, etc.) emits:
+`struct` or `class`. Applying to any other declaration kind emits:
 
 > error: @Capability can only be applied to a struct or class
 
@@ -103,10 +115,6 @@ Generates an `agentTools()` method on a `struct` or `class` declaration.
 | Member | Kind | Type | Access |
 |--------|------|------|--------|
 | `agentTools()` | method | `() -> [AgentTool]` | internal |
-
-### Current Implementation
-
-Returns an empty array. Future versions will introspect `@LLMTool`-conforming properties and bridge them automatically.
 
 ### Example
 
@@ -117,6 +125,30 @@ struct WebSearch {
 }
 ```
 
+## @AgentGoal
+
+Validates prompt strings at compile time and generates `AgentGoalMetadata` with configurable parameters.
+
+### Target Type
+
+Applied to string literal expressions. Validates that:
+- The prompt is non-empty
+- No invalid parameters are specified
+- Warns about agentic keywords that may need review
+
+### Generated Peer
+
+| Peer | Type | Purpose |
+|------|------|---------|
+| `AgentGoalMetadata` | struct | Configurable parameters: `maxTurns`, `temperature`, `requiresTools`, `preferredFormat` |
+
+### Example
+
+```swift
+@AgentGoal(maxTurns: 10, temperature: 0.7, requiresTools: true)
+let researchGoal = "Research the given topic thoroughly"
+```
+
 ## Diagnostics Summary
 
 | Macro | Diagnostic ID | Message |
@@ -124,3 +156,4 @@ struct WebSearch {
 | `@SpecDrivenAgent` | `requiresActor` | `@SpecDrivenAgent can only be applied to an actor` |
 | `@StructuredOutput` | `requiresStruct` | `@StructuredOutput can only be applied to a struct` |
 | `@Capability` | `requiresStructOrClass` | `@Capability can only be applied to a struct or class` |
+| `@AgentGoal` | various | Empty prompt, invalid parameters, agentic keyword warnings |

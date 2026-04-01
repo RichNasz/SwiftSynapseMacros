@@ -10,36 +10,41 @@
     )
 }
 
-Macro-powered orchestration layer for SwiftSynapse agents.
+Production-grade agent harness for Swift — macros, tools, hooks, permissions, streaming, recovery, MCP, multi-agent coordination, and everything between your `execute(goal:)` and a deployed agent.
 
 ## Overview
 
-SwiftSynapseMacros provides Swift macros that generate boilerplate for LLM agent orchestration. It bridges SwiftOpenResponsesDSL's LLM client and SwiftLLMToolMacros' tool definitions into observable, status-tracked agent actors.
+SwiftSynapseMacros is the orchestration layer for the [SwiftSynapse](https://github.com/RichNasz/SwiftSynapse) ecosystem. It provides:
 
-- **Status Tracking**: `@SpecDrivenAgent` generates a `Status` enum and observable state for every agent actor
-- **Transcript Observability**: Agents automatically accumulate `[TranscriptEntry]` conversation history, with `ObservableTranscript` for SwiftUI
-- **Tool Bridging**: `@Capability` bridges `@LLMTool`-annotated types into `[AgentTool]`
-- **Structured Output**: `@StructuredOutput` connects `@LLMToolArguments` JSON schemas to the `TextFormat` type
+- **Swift macros** that generate agent scaffolding (`@SpecDrivenAgent`, `@StructuredOutput`, `@Capability`, `@AgentGoal`)
+- **A complete agent harness** with typed tools, lifecycle management, streaming, hooks, permissions, recovery, telemetry, and context management
+- **Production capabilities** including session persistence, guardrails, MCP integration, multi-agent coordination, caching, and a plugin system
+- **SwiftUI components** via `SwiftSynapseUI` for drop-in agent interfaces
 
-## Quick Start
+### How It Works
 
-Add SwiftSynapseMacros to your `Package.swift`:
-
-```swift
-dependencies: [
-    .package(url: "https://github.com/RichNasz/SwiftSynapseMacros", branch: "main"),
-]
-```
-
-Then import `SwiftSynapseMacrosClient` in your target:
+You write `execute(goal:)` with your domain logic. The `@SpecDrivenAgent` macro generates `run(goal:)`, which calls `agentRun()` to handle status transitions, transcript management, error handling, cancellation, hooks, and telemetry. The harness provides typed tools, permissions, recovery strategies, and context budget tracking.
 
 ```swift
-import SwiftSynapseMacrosClient
-
 @SpecDrivenAgent
-actor MyAgent {
-    // Generates: Status enum, status tracking, transcript,
-    // LLMClient wrapper, and run(_:) method
+actor CustomerSupportAgent {
+    private let config: AgentConfiguration
+
+    init(configuration: AgentConfiguration) throws {
+        self.config = configuration
+    }
+
+    func execute(goal: String) async throws -> String {
+        let client = try config.buildClient()
+        let tools = ToolRegistry()
+        tools.register(LookupOrderTool())
+        tools.register(RefundTool())
+
+        return try await AgentToolLoop.run(
+            client: client, config: config, goal: goal,
+            tools: tools, transcript: _transcript
+        )
+    }
 }
 ```
 
@@ -50,13 +55,46 @@ actor MyAgent {
 - <doc:MacroReference>
 - <doc:IntegrationGuide>
 
+### Guides
+- <doc:AgentHarnessGuide>
+- <doc:ProductionGuide>
+
 ### Macros
 - ``SpecDrivenAgent()``
 - ``StructuredOutput()``
 - ``Capability()``
+- ``AgentGoal()``
 
-### Orchestration Types
-- ``AgentTool``
-- ``TextFormat``
-- ``SwiftSynapseError``
+### Agent Lifecycle
+- ``AgentExecutable``
+- ``AgentStatus``
 - ``ObservableTranscript``
+
+### Tool System
+- ``AgentToolProtocol``
+- ``ToolRegistry``
+- ``AgentToolLoop``
+
+### LLM Backends
+- ``AgentLLMClient``
+- ``AgentConfiguration``
+
+### Hooks and Permissions
+- ``AgentHookPipeline``
+- ``PermissionGate``
+
+### Recovery and Context
+- ``RecoveryChain``
+- ``ContextBudget``
+- ``TranscriptCompressor``
+
+### Production Capabilities
+- ``SessionStore``
+- ``GuardrailPipeline``
+- ``MCPManager``
+- ``CoordinationRunner``
+- ``PluginManager``
+
+### Telemetry
+- ``TelemetrySink``
+- ``TelemetryEvent``

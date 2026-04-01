@@ -1,10 +1,10 @@
 # Getting Started
 
-Learn how to add SwiftSynapseMacros to your project and create your first agent.
+Build your first agent with SwiftSynapseMacros — from a simple LLM call to a tool-using agent with hooks and permissions.
 
 ## Overview
 
-SwiftSynapseMacros lets you create LLM-powered agents with minimal boilerplate. This guide walks you through installation, creating an agent actor, injecting an LLM client, and running your first conversation.
+SwiftSynapseMacros lets you create production-ready LLM agents with minimal boilerplate. The `@SpecDrivenAgent` macro generates lifecycle scaffolding; you write only `execute(goal:)` with your domain logic.
 
 ## Requirements
 
@@ -37,81 +37,134 @@ let package = Package(
 )
 ```
 
-Importing `SwiftSynapseMacrosClient` also gives you access to SwiftOpenResponsesDSL and SwiftLLMToolMacros types via re-exports.
+Importing `SwiftSynapseMacrosClient` also gives you access to SwiftOpenResponsesDSL, SwiftLLMToolMacros, and SwiftOpenSkills types via re-exports.
 
-## Create an Agent
+For SwiftUI views, also add `SwiftSynapseUI`.
 
-Annotate an `actor` with `@SpecDrivenAgent` to generate the full agent scaffold:
+## Step 1: Create a Minimal Agent
+
+Annotate an `actor` with `@SpecDrivenAgent` and implement `execute(goal:)`:
 
 ```swift
 import SwiftSynapseMacrosClient
 
 @SpecDrivenAgent
-actor ResearchAgent {
-    // The macro generates:
-    // - Status enum (idle, running, completed, failed)
-    // - _status, _transcript, _dslAgent stored properties
-    // - status, isRunning, transcript computed properties
-    // - client: LLMClient? stored property
-    // - run(_:) async throws -> String method
-}
-```
+actor SimpleAgent {
+    private let config: AgentConfiguration
 
-## Inject an LLM Client
+    init(configuration: AgentConfiguration) throws {
+        self.config = configuration
+    }
 
-Before calling `run(_:)`, set the agent's `client` property with an `LLMClient` from SwiftOpenResponsesDSL:
-
-```swift
-let agent = ResearchAgent()
-
-let client = try LLMClient(
-    baseURLString: "https://api.openai.com/v1/responses",
-    apiKey: apiKey
-)
-
-agent.client = client
-```
-
-## Run a Conversation
-
-Call `run(_:)` with a user message. The method manages status transitions, calls the LLM, and appends entries to the transcript:
-
-```swift
-do {
-    let response = try await agent.run("What is quantum computing?")
-    print(response)
-
-    // Check agent state
-    print(agent.status)       // .completed
-    print(agent.transcript)   // [user entry, assistant entry]
-} catch {
-    print(agent.status)       // .failed
-}
-```
-
-## Observe in SwiftUI
-
-Use `ObservableTranscript` to bind agent conversation state to your UI:
-
-```swift
-let observable = ObservableTranscript()
-
-// Sync from agent transcript
-observable.sync(from: agent.transcript)
-
-// Use in SwiftUI views
-struct ChatView: View {
-    @State var transcript = ObservableTranscript()
-
-    var body: some View {
-        List(transcript.entries, id: \.content) { entry in
-            Text("\(entry.role): \(entry.content)")
-        }
+    func execute(goal: String) async throws -> String {
+        let client = try config.buildClient()
+        let agent = Agent(client: client, model: config.modelName)
+        return try await agent.send(goal)
     }
 }
 ```
 
+The macro generates `_status`, `_transcript`, `status`, `transcript`, `run(goal:)`, and `AgentExecutable` conformance. The generated `run(goal:)` calls `agentRun()`, which handles status transitions, transcript reset, error handling, and cancellation — then delegates to your `execute(goal:)`.
+
+## Step 2: Configure and Run
+
+```swift
+let config = try AgentConfiguration.fromEnvironment()
+let agent = try SimpleAgent(configuration: config)
+let reply = try await agent.run(goal: "What is quantum computing?")
+print(reply)
+```
+
+`AgentConfiguration.fromEnvironment()` reads `SWIFTSYNAPSE_SERVER_URL`, `SWIFTSYNAPSE_MODEL`, and `SWIFTSYNAPSE_API_KEY` from environment variables.
+
+## Step 3: Add Tools
+
+Create typed tools by conforming to `AgentToolProtocol`, register them in a `ToolRegistry`, and use `AgentToolLoop.run()`:
+
+```swift
+struct CalculateTool: AgentToolProtocol {
+    struct Input: Codable, Sendable { let expression: String }
+    typealias Output = String
+
+    static let name = "calculate"
+    static let description = "Evaluates a math expression"
+    static let isConcurrencySafe = true
+    static var inputSchema: FunctionToolParam { /* ... */ }
+
+    func execute(input: Input) async throws -> String {
+        // evaluation logic
+    }
+}
+
+@SpecDrivenAgent
+actor MathAgent {
+    private let config: AgentConfiguration
+
+    init(configuration: AgentConfiguration) throws {
+        self.config = configuration
+    }
+
+    func execute(goal: String) async throws -> String {
+        let client = try config.buildClient()
+        let tools = ToolRegistry()
+        tools.register(CalculateTool())
+
+        return try await AgentToolLoop.run(
+            client: client, config: config, goal: goal,
+            tools: tools, transcript: _transcript
+        )
+    }
+}
+```
+
+Tools marked `isConcurrencySafe = true` run in parallel via `TaskGroup` during batch dispatch.
+
+## Step 4: Add Hooks
+
+Intercept agent and tool events without modifying agent code:
+
+```swift
+let hooks = AgentHookPipeline()
+let loggingHook = ClosureHook(on: [.preToolUse, .postToolUse]) { event in
+    switch event {
+    case .preToolUse(let calls):
+        print("Calling tools: \(calls.map(\.name))")
+    case .postToolUse(let results):
+        for r in results { print("Tool \(r.name): \(r.success ? "OK" : "FAIL")") }
+    default: break
+    }
+    return .proceed
+}
+await hooks.add(loggingHook)
+
+// Pass hooks to AgentToolLoop
+return try await AgentToolLoop.run(
+    client: client, config: config, goal: goal,
+    tools: tools, transcript: _transcript, hooks: hooks
+)
+```
+
+## Step 5: Observe in SwiftUI
+
+`ObservableTranscript` is `@Observable` — bind it directly to SwiftUI views:
+
+```swift
+import SwiftSynapseUI
+
+struct AgentView: View {
+    let agent: some ObservableAgent
+
+    var body: some View {
+        AgentChatView(agent: agent)
+    }
+}
+```
+
+Or build custom views using the agent's `status` and `transcript` properties.
+
 ## Next Steps
 
-- Read the <doc:MacroReference> for details on all three macros
+- Read the <doc:MacroReference> for details on all four macros
 - See the <doc:IntegrationGuide> to understand how the packages work together
+- Explore the <doc:AgentHarnessGuide> for tools, hooks, permissions, and recovery
+- Read the <doc:ProductionGuide> for session persistence, guardrails, MCP, and more
