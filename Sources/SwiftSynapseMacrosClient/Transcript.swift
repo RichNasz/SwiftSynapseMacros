@@ -55,10 +55,4 @@ public final class ObservableTranscript: @unchecked Sendable {
         self.streamingText = ""
     }
 
-    /// Restores transcript state from codable entries.
-    public func restore(from codableEntries: [CodableTranscriptEntry]) {
-        self.entries = codableEntries.map { $0.toTranscriptEntry() }
-        self.isStreaming = false
-        self.streamingText = ""
-    }
 }
