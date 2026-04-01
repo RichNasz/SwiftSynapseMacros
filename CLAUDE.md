@@ -2,7 +2,9 @@
 
 ## Project Overview
 
-SwiftSynapseMacros is the macro-powered orchestration layer for the SwiftSynapse ecosystem. It provides Swift macros (`@SpecDrivenAgent`, `@StructuredOutput`, `@Capability`, `@AgentGoal`) that generate boilerplate for LLM agent orchestration, bridging SwiftOpenResponsesDSL's LLM client and SwiftLLMToolMacros' tool definitions into observable, status-tracked agent actors.
+SwiftSynapseMacros provides Swift macros and core types for the SwiftSynapse ecosystem. It generates agent scaffolding (`@SpecDrivenAgent`, `@StructuredOutput`, `@Capability`, `@AgentGoal`) and provides foundational types used by macro-generated code and SwiftUI views.
+
+The agent harness (tool loop, hooks, permissions, streaming, recovery, MCP, etc.) lives in [SwiftSynapseHarness](https://github.com/RichNasz/SwiftSynapseHarness).
 
 ## Commands
 
@@ -23,28 +25,29 @@ SwiftSynapseMacros is the macro-powered orchestration layer for the SwiftSynapse
    - `AgentGoalMacro.swift` - Goal validation and metadata generation
    - **SwiftSyntax only** — no sibling package imports
 
-2. **SwiftSynapseMacrosClient** (client target) - Public API that users import
+2. **SwiftSynapseMacrosClient** (client target) - Core types + macro declarations
    - `Macros.swift` - `#externalMacro` declarations + `@_exported import` of siblings
-   - `AgentTool.swift` - Bridges `ToolDefinition` / `LLMTool`
-   - `TextFormat.swift` - `.jsonSchema` / `.text` output format enum
-   - `SwiftSynapseError.swift` - Error cases for orchestration
-   - `Transcript.swift` - `@Observable` transcript for SwiftUI
+   - `AgentExecutable.swift` - Protocol for @SpecDrivenAgent actors + AgentLifecycleError
    - `AgentStatus.swift` - Shared agent status enum
-   - `AgentRuntime.swift` - Runtime loop engine
+   - `Transcript.swift` - `@Observable` transcript for SwiftUI
+   - `TextFormat.swift` - Output format enum
    - `AgentGoalMetadata.swift` - Goal metadata struct
+   - `ToolProgressUpdate.swift` - Tool progress data type
+   - `AgentTool.swift` - Deprecated tool bridging type
 
-3. **SwiftSynapseMacrosTests** (test target)
+3. **SwiftSynapseUI** (UI target) - SwiftUI views
+   - Drop-in agent views (chat, status, transcript, streaming)
+   - Depends on SwiftSynapseMacrosClient only (core types)
+
+4. **SwiftSynapseMacrosTests** (test target)
    - XCTest-based macro expansion tests (`assertMacroExpansion`)
-   - `MacroExpansionTests.swift` - Tests for `@SpecDrivenAgent`, `@StructuredOutput`, `@Capability`
-   - `AgentGoalMacroTests.swift` - Tests for `@AgentGoal`
 
 ### Key Design Decisions
 
-- **Macro target is SwiftSyntax-only**: The compiler plugin cannot import sibling packages. It generates code strings that reference types from the client target.
-- **Client re-exports siblings**: `@_exported import SwiftLLMToolMacros` and `@_exported import SwiftOpenResponsesDSL` so consumers only need to import `SwiftSynapseMacrosClient`.
-- **Diagnostics**: Each macro has a diagnostic enum conforming to `SwiftDiagnostics.DiagnosticMessage`.
+- **Macro target is SwiftSyntax-only**: The compiler plugin cannot import sibling packages.
+- **Client re-exports siblings**: `@_exported import SwiftLLMToolMacros` and `@_exported import SwiftOpenResponsesDSL`.
+- **Harness is separate**: The agent runtime (`agentRun()`), tool loop, hooks, and all production capabilities live in SwiftSynapseHarness. Users typically `import SwiftSynapseHarness` which re-exports this package.
 - **Actor-only agents**: `@SpecDrivenAgent` enforces `actor` declarations at compile time.
-- **Goal validation**: `@AgentGoal` validates prompt content and parameters at compile time, generating `AgentGoalMetadata` peers.
 
 ## Spec-Driven Workflow
 
@@ -55,62 +58,49 @@ All `.swift` files in `Sources/` and `Tests/` are generated from specs in `CodeG
 3. Run `swift build && swift test` to verify
 4. Commit both spec and generated files together
 
-**Never edit generated `.swift` files directly.** Every generated file has a header comment pointing to its source spec.
+**Never edit generated `.swift` files directly.**
 
 ## File Structure
 
 ```
 Sources/
   SwiftSynapseMacros/                # Compiler plugin (SwiftSyntax only)
-    Plugin.swift                     # @main entry point
-    SpecDrivenAgentMacro.swift       # @SpecDrivenAgent implementation
-    StructuredOutputMacro.swift      # @StructuredOutput implementation
-    CapabilityMacro.swift            # @Capability implementation
-    AgentGoalMacro.swift             # @AgentGoal implementation
-  SwiftSynapseMacrosClient/         # Public API
-    Macros.swift                     # #externalMacro declarations + re-exports
-    AgentTool.swift                  # Tool bridging type
-    TextFormat.swift                 # Output format enum
-    SwiftSynapseError.swift          # Error type
-    Transcript.swift                 # ObservableTranscript
-    AgentStatus.swift                # Shared agent status enum
-    AgentRuntime.swift               # Runtime loop engine
-    AgentGoalMetadata.swift          # Goal metadata struct
+    Plugin.swift
+    SpecDrivenAgentMacro.swift
+    StructuredOutputMacro.swift
+    CapabilityMacro.swift
+    AgentGoalMacro.swift
+  SwiftSynapseMacrosClient/         # Core types + macro declarations
+    Macros.swift
+    AgentExecutable.swift
+    AgentStatus.swift
+    Transcript.swift
+    TextFormat.swift
+    AgentGoalMetadata.swift
+    ToolProgressUpdate.swift
+    AgentTool.swift
+  SwiftSynapseUI/                   # SwiftUI views
+    AgentChatView.swift
+    AgentStatusView.swift
+    TranscriptView.swift
+    StreamingTextView.swift
+    ToolCallDetailView.swift
+    ObservableAgent.swift
+    AgentAppIntent.swift
 Tests/
   SwiftSynapseMacrosTests/
-    MacroExpansionTests.swift        # assertMacroExpansion tests
-    AgentGoalMacroTests.swift        # @AgentGoal expansion tests
-CodeGenSpecs/                        # Source of truth
-  Overview.md                        # Spec index and rules
-  Macros-SpecDrivenAgent.md          # @SpecDrivenAgent spec
-  Macros-StructuredOutput.md         # @StructuredOutput spec
-  Macros-Capability.md               # @Capability spec
-  Macros-AgentGoal.md                # @AgentGoal spec
-  Client-Types.md                    # Client type specs
-  Tests.md                           # Test spec
-  README-Generation.md               # README spec
-Examples/                            # Excluded from build
+    MacroExpansionTests.swift
+    AgentGoalMacroTests.swift
+CodeGenSpecs/
+  Overview.md
+  Macros-SpecDrivenAgent.md
+  Macros-StructuredOutput.md
+  Macros-Capability.md
+  Macros-AgentGoal.md
+  Client-Types.md
+  Tests.md
+  README-Generation.md
 ```
-
-## Type References
-
-Types referenced in macro-generated code come from different packages:
-
-| Type | Source Package |
-|------|---------------|
-| `TranscriptEntry` | SwiftOpenResponsesDSL (re-exported) |
-| `AgentTool` | SwiftSynapseMacrosClient |
-| `TextFormat` | SwiftSynapseMacrosClient |
-| `SwiftSynapseError` | SwiftSynapseMacrosClient |
-| `ObservableTranscript` | SwiftSynapseMacrosClient |
-| `AgentStatus` | SwiftSynapseMacrosClient |
-| `AgentRuntime` | SwiftSynapseMacrosClient |
-| `AgentGoalMetadata` | SwiftSynapseMacrosClient |
-| `LLMClient` | SwiftOpenResponsesDSL (re-exported) |
-| `Role` | SwiftOpenResponsesDSL (re-exported) |
-| `ToolDefinition` | SwiftLLMToolMacros (re-exported) |
-| `LLMTool` | SwiftLLMToolMacros (re-exported) |
-| `JSONSchemaValue` | SwiftLLMToolMacros (re-exported) |
 
 ## Dependencies
 
@@ -126,13 +116,8 @@ Types referenced in macro-generated code come from different packages:
 ## Testing Strategy
 
 - **Macro expansion tests** use `assertMacroExpansion` from SwiftSyntaxMacrosTestSupport (XCTest)
-- SwiftSyntax reformats single-line closures to multi-line in expansion tests — expected behavior
-- Tests cover: correct member/peer generation, diagnostic errors for wrong declaration kinds, compile-time validation (empty prompts, invalid parameters, agentic keyword warnings)
+- Tests cover: correct member/peer generation, diagnostic errors for wrong declaration kinds, compile-time validation
 
 ## Claude Code Files
 
-Only the following Claude-related files are tracked:
-
-- **`CLAUDE.md`** — Project instructions loaded automatically by Claude Code
-
-The `.claude/` directory is gitignored and must never be committed.
+Only `CLAUDE.md` is tracked. The `.claude/` directory is gitignored.
