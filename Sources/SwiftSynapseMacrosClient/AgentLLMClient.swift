@@ -71,6 +71,34 @@ public struct AgentResponse: Sendable {
 public protocol AgentLLMClient: Sendable {
     func send(_ request: AgentRequest) async throws -> AgentResponse
     func stream(_ request: AgentRequest) async throws -> AsyncThrowingStream<String, Error>
+
+    /// Streams structured events including text deltas and tool calls as they complete.
+    ///
+    /// Used by `StreamingToolExecutor` to dispatch tools while the LLM is still
+    /// generating. Default implementation falls back to `send()` and yields
+    /// events from the complete response.
+    func streamEvents(_ request: AgentRequest) async throws -> AsyncThrowingStream<AgentStreamEvent, Error>
+}
+
+extension AgentLLMClient {
+    /// Default implementation: falls back to `send()` and yields events from the complete response.
+    public func streamEvents(_ request: AgentRequest) async throws -> AsyncThrowingStream<AgentStreamEvent, Error> {
+        let response = try await send(request)
+        return AsyncThrowingStream { continuation in
+            if let text = response.text, !text.isEmpty {
+                continuation.yield(.textDelta(text))
+            }
+            for call in response.toolCalls {
+                continuation.yield(.toolCall(call))
+            }
+            continuation.yield(.responseComplete(
+                responseId: response.responseId,
+                inputTokens: response.inputTokens,
+                outputTokens: response.outputTokens
+            ))
+            continuation.finish()
+        }
+    }
 }
 
 // MARK: - Cloud Implementation

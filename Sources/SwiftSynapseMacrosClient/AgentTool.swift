@@ -2,6 +2,7 @@
 // Do not edit manually — update the corresponding spec file and re-generate
 import SwiftLLMToolMacros
 
+@available(*, deprecated, message: "Use AgentToolProtocol instead for typed tool definitions with automatic dispatch")
 public struct AgentToolDefinition: Sendable {
     public let definition: ToolDefinition
 

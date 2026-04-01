@@ -80,7 +80,7 @@ public struct AgentChatView<A: ObservableAgent>: View {
         Task {
             currentTranscript = await agent.transcript
             do {
-                _ = try await agent.execute(goal: goal)
+                _ = try await agent.run(goal: goal)
             } catch {
                 // Error is reflected in agent.status
             }

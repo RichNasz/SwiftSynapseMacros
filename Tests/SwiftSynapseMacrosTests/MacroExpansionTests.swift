@@ -29,9 +29,9 @@ final class MacroExpansionTests: XCTestCase {
             expandedSource: """
             actor MyAgent {
 
-                private var _status: AgentStatus = .idle
+                var _status: AgentStatus = .idle
 
-                private var _transcript: ObservableTranscript = ObservableTranscript()
+                var _transcript: ObservableTranscript = ObservableTranscript()
 
                 var status: AgentStatus {
                     _status
@@ -40,6 +40,13 @@ final class MacroExpansionTests: XCTestCase {
                 var transcript: ObservableTranscript {
                     _transcript
                 }
+
+                func run(goal: String) async throws -> String {
+                    try await agentRun(agent: self, goal: goal)
+                }
+            }
+
+            extension MyAgent: AgentExecutable {
             }
             """,
             macros: testMacros
@@ -92,9 +99,9 @@ final class MacroExpansionTests: XCTestCase {
             expandedSource: """
             actor CustomBot {
 
-                private var _status: AgentStatus = .idle
+                var _status: AgentStatus = .idle
 
-                private var _transcript: ObservableTranscript = ObservableTranscript()
+                var _transcript: ObservableTranscript = ObservableTranscript()
 
                 var status: AgentStatus {
                     _status
@@ -103,6 +110,13 @@ final class MacroExpansionTests: XCTestCase {
                 var transcript: ObservableTranscript {
                     _transcript
                 }
+
+                func run(goal: String) async throws -> String {
+                    try await agentRun(agent: self, goal: goal)
+                }
+            }
+
+            extension CustomBot: AgentExecutable {
             }
             """,
             macros: testMacros
@@ -119,9 +133,9 @@ final class MacroExpansionTests: XCTestCase {
             expandedSource: """
             public actor PublicAgent {
 
-                private var _status: AgentStatus = .idle
+                public var _status: AgentStatus = .idle
 
-                private var _transcript: ObservableTranscript = ObservableTranscript()
+                public var _transcript: ObservableTranscript = ObservableTranscript()
 
                 public var status: AgentStatus {
                     _status
@@ -130,6 +144,13 @@ final class MacroExpansionTests: XCTestCase {
                 public var transcript: ObservableTranscript {
                     _transcript
                 }
+
+                public func run(goal: String) async throws -> String {
+                    try await agentRun(agent: self, goal: goal)
+                }
+            }
+
+            extension PublicAgent: AgentExecutable {
             }
             """,
             macros: testMacros

@@ -5,7 +5,19 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
-public struct SpecDrivenAgentMacro: MemberMacro {
+public struct SpecDrivenAgentMacro: MemberMacro, ExtensionMacro {
+    public static func expansion(
+        of node: AttributeSyntax,
+        attachedTo declaration: some DeclGroupSyntax,
+        providingExtensionsOf type: some TypeSyntaxProtocol,
+        conformingTo protocols: [TypeSyntax],
+        in context: some MacroExpansionContext
+    ) throws -> [ExtensionDeclSyntax] {
+        guard declaration.is(ActorDeclSyntax.self) else { return [] }
+        let ext: DeclSyntax = "extension \(type.trimmed): AgentExecutable {}"
+        return [ext.cast(ExtensionDeclSyntax.self)]
+    }
+
     public static func expansion(
         of node: AttributeSyntax,
         providingMembersOf declaration: some DeclGroupSyntax,
@@ -24,8 +36,8 @@ public struct SpecDrivenAgentMacro: MemberMacro {
         let access = isPublic ? "public " : ""
 
         return [
-            "private var _status: AgentStatus = .idle",
-            "private var _transcript: ObservableTranscript = ObservableTranscript()",
+            "\(raw: access)var _status: AgentStatus = .idle",
+            "\(raw: access)var _transcript: ObservableTranscript = ObservableTranscript()",
             """
             \(raw: access)var status: AgentStatus {
                 _status
@@ -34,6 +46,11 @@ public struct SpecDrivenAgentMacro: MemberMacro {
             """
             \(raw: access)var transcript: ObservableTranscript {
                 _transcript
+            }
+            """,
+            """
+            \(raw: access)func run(goal: String) async throws -> String {
+                try await agentRun(agent: self, goal: goal)
             }
             """,
         ]
