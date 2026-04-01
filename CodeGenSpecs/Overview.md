@@ -12,10 +12,7 @@ This directory contains the specifications that serve as the single source of tr
 | [Macros-StructuredOutput.md](Macros-StructuredOutput.md) | `Sources/SwiftSynapseMacros/StructuredOutputMacro.swift` |
 | [Macros-Capability.md](Macros-Capability.md) | `Sources/SwiftSynapseMacros/CapabilityMacro.swift` |
 | [Macros-AgentGoal.md](Macros-AgentGoal.md) | `Sources/SwiftSynapseMacros/AgentGoalMacro.swift` |
-| [Client-Types.md](Client-Types.md) | `Sources/SwiftSynapseMacrosClient/AgentTool.swift`, `TextFormat.swift`, `SwiftSynapseError.swift`, `Transcript.swift`, `AgentStatus.swift`, `AgentRuntime.swift`, `AgentGoalMetadata.swift`, `Macros.swift` |
-| [Client-AgentHarness.md](Client-AgentHarness.md) | `AgentToolProtocol.swift`, `ToolRegistry.swift`, `AgentToolLoop.swift`, `StreamingToolExecutor.swift`, `AgentHook.swift`, `AgentHookPipeline.swift`, `Permission.swift`, `ToolListPolicy.swift`, `AgentLLMClient.swift`, `AgentConfiguration.swift`, `AgentSession.swift`, `RetryWithBackoff.swift`, `RecoveryStrategy.swift`, `ContextBudget.swift`, `Telemetry.swift`, `TelemetrySinks.swift`, `SubagentContext.swift` |
-| [Client-Production.md](Client-Production.md) | `SessionPersistence.swift`, `Guardrails.swift`, `ToolProgress.swift`, `MCP.swift`, `ContextCompression.swift`, `ConfigurationHierarchy.swift`, `Caching.swift`, `DenialTracking.swift`, `AgentCoordination.swift`, `PluginSystem.swift` |
-| [Client-ProductionPolish.md](Client-ProductionPolish.md) | `CostTracking.swift`, `ErrorClassification.swift`, `ResultTruncation.swift`, `RateLimiting.swift`, `SystemPromptBuilder.swift`, `TestFixtures.swift`, `GracefulShutdown.swift`, `AgentMemory.swift`, `ConversationRecovery.swift` |
+| [Client-Types.md](Client-Types.md) | `Sources/SwiftSynapseMacrosClient/AgentTool.swift`, `TextFormat.swift`, `Transcript.swift`, `AgentStatus.swift`, `AgentExecutable.swift`, `AgentGoalMetadata.swift`, `ToolProgressUpdate.swift`, `Macros.swift` |
 | [Tests.md](Tests.md) | `Tests/SwiftSynapseMacrosTests/MacroExpansionTests.swift` |
 | [README-Generation.md](README-Generation.md) | `README.md` (root) |
 
@@ -24,6 +21,17 @@ This directory contains the specifications that serve as the single source of tr
 | File | Spec Source |
 |------|-------------|
 | `Sources/SwiftSynapseMacros/Plugin.swift` | This file (`Overview.md`) — plugin registration |
+
+## Harness Specs
+
+Agent harness specifications live in the [SwiftSynapseHarness](https://github.com/RichNasz/SwiftSynapseHarness) package:
+
+| Spec | Content |
+|------|---------|
+| `Client-Runtime.md` | AgentRuntime, agentRun(), ObservableTranscript+Harness |
+| `Client-AgentHarness.md` | Tool system, hooks, permissions, streaming, recovery, telemetry |
+| `Client-Production.md` | Session persistence, guardrails, MCP, compression, caching, coordination, plugins |
+| `Client-ProductionPolish.md` | Cost tracking, error classification, rate limiting, VCR testing, shutdown, memory, conversation recovery |
 
 ## Generation Rules
 

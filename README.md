@@ -2,17 +2,17 @@
 
 # SwiftSynapseMacros
 
-Production-grade agent harness for Swift. Macros, tools, hooks, permissions, streaming, recovery, MCP, multi-agent coordination — everything between your `execute(goal:)` and a deployed agent.
+Swift macros and core types for AI agent orchestration. Part of the [SwiftSynapse](https://github.com/RichNasz/SwiftSynapse) ecosystem.
 
 ## Overview
 
-SwiftSynapseMacros is the orchestration layer for the [SwiftSynapse](https://github.com/RichNasz/SwiftSynapse) ecosystem. It provides:
+SwiftSynapseMacros provides:
 
 - **Swift macros** that generate agent scaffolding (`@SpecDrivenAgent`, `@StructuredOutput`, `@Capability`, `@AgentGoal`)
-- **A complete agent harness** with typed tools, lifecycle management, streaming, hooks, permissions, recovery, telemetry, and context management
-- **Production capabilities** including session persistence, guardrails, MCP integration, multi-agent coordination, caching, and a plugin system
+- **Core types** used by macro-generated code and SwiftUI views (`AgentStatus`, `ObservableTranscript`, `AgentExecutable`, `ToolProgressUpdate`)
+- **SwiftUI views** via `SwiftSynapseUI` for drop-in agent interfaces
 
-Designed for **business agents** — customer support, data processing, workflow automation — but general-purpose enough for any AI agent.
+For the full agent harness (tool loop, hooks, permissions, streaming, recovery, MCP, multi-agent coordination, and production capabilities), see [SwiftSynapseHarness](https://github.com/RichNasz/SwiftSynapseHarness).
 
 ## Requirements
 
@@ -27,47 +27,19 @@ dependencies: [
 ]
 ```
 
-Add `"SwiftSynapseMacrosClient"` to your target's dependencies. For SwiftUI views, also add `"SwiftSynapseUI"`.
+Add `"SwiftSynapseMacrosClient"` to your target's dependencies for macros and core types. Add `"SwiftSynapseUI"` for SwiftUI views.
 
-## Quick Start
-
-```swift
-import SwiftSynapseMacrosClient
-
-@SpecDrivenAgent
-actor CustomerSupportAgent {
-    private let config: AgentConfiguration
-
-    init(configuration: AgentConfiguration) throws {
-        self.config = configuration
-    }
-
-    // This is all you write. The macro generates run(goal:),
-    // status tracking, transcript management, and protocol conformance.
-    func execute(goal: String) async throws -> String {
-        let client = try config.buildClient()
-        let tools = ToolRegistry()
-        tools.register(LookupOrderTool())
-        tools.register(RefundTool())
-
-        return try await AgentToolLoop.run(
-            client: client,
-            config: config,
-            goal: goal,
-            tools: tools,
-            transcript: _transcript
-        )
-    }
-}
-```
+Most agent projects should depend on [SwiftSynapseHarness](https://github.com/RichNasz/SwiftSynapseHarness) instead, which re-exports this package.
 
 ## Macros
 
 ### @SpecDrivenAgent
 
-Generates lifecycle scaffolding on `actor` declarations: `_status`, `_transcript`, `status`, `transcript`, `run(goal:)`, and `AgentExecutable` conformance. The generated `run(goal:)` calls `agentRun()` which handles status transitions, transcript reset, error/completion, cancellation, hooks, and telemetry.
+Generates lifecycle scaffolding on `actor` declarations: `_status`, `_transcript`, `status`, `transcript`, `run(goal:)`, and `AgentExecutable` conformance. The generated `run(goal:)` calls `agentRun()` (from `SwiftSynapseHarness`) which handles status transitions, transcript reset, error/completion, cancellation, hooks, and telemetry.
 
 ```swift
+import SwiftSynapseHarness
+
 @SpecDrivenAgent
 actor MyAgent {
     func execute(goal: String) async throws -> String {
@@ -88,341 +60,17 @@ Generates an `agentTools()` method bridging `@LLMTool` types to `AgentToolDefini
 
 Validates prompt strings at compile time and generates `AgentGoalMetadata` with configurable parameters (maxTurns, temperature, requiresTools, preferredFormat).
 
-## Agent Harness
-
-The harness provides everything between `run(goal:)` and your `execute(goal:)`:
-
-### Typed Tool System
-
-```swift
-struct CalculateTool: AgentToolProtocol {
-    struct Input: Codable, Sendable { let expression: String }
-    typealias Output = String
-
-    static let name = "calculate"
-    static let description = "Evaluates a math expression"
-    static let isConcurrencySafe = true
-
-    static var inputSchema: FunctionToolParam { /* ... */ }
-
-    func execute(input: Input) async throws -> String {
-        // Tool logic
-    }
-}
-
-// Register and dispatch
-let tools = ToolRegistry()
-tools.register(CalculateTool())
-let result = try await tools.dispatch(name: "calculate", callId: "1", arguments: json)
-```
-
-Tools marked `isConcurrencySafe` run in parallel via `TaskGroup` during batch dispatch.
-
-### Hook System
-
-Intercept agent and tool events without modifying agent code:
-
-```swift
-let auditHook = ClosureHook(on: [.preToolUse, .postToolUse]) { event in
-    switch event {
-    case .preToolUse(let calls):
-        AuditLog.record("Tools invoked: \(calls.map(\.name))")
-    case .postToolUse(let results):
-        for r in results { AuditLog.record("Tool \(r.name): \(r.success ? "OK" : "FAIL")") }
-    default: break
-    }
-    return .proceed  // or .block(reason:) or .modify(String)
-}
-
-let pipeline = AgentHookPipeline()
-await pipeline.add(auditHook)
-```
-
-15 event types: agent lifecycle, tool use, LLM requests/responses, transcript updates, sessions, guardrails, coordination phases.
-
-### Permission System
-
-Policy-driven tool access control with human-in-the-loop approval:
-
-```swift
-let gate = PermissionGate()
-await gate.addPolicy(ToolListPolicy(rules: [
-    .requireApproval(["chargeCard", "sendEmail"]),
-    .deny(["deleteAccount"])
-]))
-await gate.setApprovalDelegate(myDelegate)
-```
-
-### Recovery Strategies
-
-Self-healing from context window exhaustion and output truncation:
-
-- **ReactiveCompactionStrategy** — compresses transcript when context window exceeded
-- **OutputTokenEscalationStrategy** — increases max tokens on truncation
-- **ContinuationStrategy** — sends continuation prompt
-- **RecoveryChain** — ordered chain, first success wins
-
-### Streaming
-
-`AgentToolLoop.runStreaming()` dispatches concurrency-safe tools as their definitions complete in the LLM stream. Text deltas forwarded to `ObservableTranscript` for real-time SwiftUI updates.
-
-### LLM Backend Abstraction
-
-Three backends behind one protocol:
-
-- `CloudLLMClient` — wraps SwiftOpenResponsesDSL
-- `HybridLLMClient` — Foundation Models on-device → cloud fallback
-- `AgentConfiguration.buildClient()` selects based on `executionMode`
-
-### Subagent Composition
-
-```swift
-let result = try await SubagentRunner.run(
-    agentFactory: { try SummaryAgent(configuration: $0) },
-    goal: "Summarize this document",
-    context: SubagentContext(config: parentConfig, lifecycleMode: .shared)
-)
-```
-
-`.shared` propagates parent cancellation; `.independent` runs in its own task.
-
-## Production Capabilities
-
-### Session Persistence
-
-```swift
-let store = FileSessionStore()
-// agentRun() auto-saves on completion, error, or cancellation
-try await agentRun(agent: myAgent, goal: "...", sessionStore: store)
-// Later: resume
-if let session = try await store.load(sessionId: savedId) {
-    myAgent._transcript.restore(from: session.transcriptEntries)
-}
-```
-
-### Guardrails
-
-```swift
-let guardrails = GuardrailPipeline()
-await guardrails.add(ContentFilter.default) // PII, secrets, API keys
-
-try await AgentToolLoop.run(
-    client: client, config: config, goal: goal,
-    tools: tools, transcript: transcript,
-    guardrails: guardrails
-)
-// Blocks tool arguments containing credit card numbers, SSNs, etc.
-// Sanitizes or blocks LLM output containing sensitive data
-```
-
-### Tool Progress
-
-```swift
-struct DataImportTool: ProgressReportingTool {
-    func execute(input: Input, callId: String, progress: any ToolProgressDelegate) async throws -> Output {
-        for (i, batch) in batches.enumerated() {
-            await progress.reportProgress(ToolProgressUpdate(
-                callId: callId, toolName: Self.name,
-                message: "Importing batch \(i+1)/\(batches.count)",
-                fractionComplete: Double(i+1) / Double(batches.count)
-            ))
-            try await processBatch(batch)
-        }
-    }
-}
-```
-
-### MCP Integration
-
-Connect to Model Context Protocol servers — databases, CRMs, APIs:
-
-```swift
-let manager = MCPManager()
-try await manager.addServer(MCPServerConfig(
-    name: "database",
-    command: "/usr/local/bin/mcp-postgres",
-    arguments: ["--connection", connectionString]
-))
-try await manager.registerAll(in: tools) // MCP tools appear as native tools
-```
-
-### Advanced Compression
-
-```swift
-let compressor = CompositeCompressor.default
-// Chain: MicroCompactor → ImportanceCompressor → SlidingWindowCompressor
-
-try await AgentToolLoop.run(
-    ..., compressor: compressor,
-    compactionTrigger: .threshold(0.75) // Compress at 75% budget
-)
-```
-
-### Configuration Hierarchy
-
-7-level priority: CLI > local file > project file > user file > MDM policy > remote > environment.
-
-```swift
-let resolver = ConfigurationResolver()
-await resolver.addSource(EnvironmentConfigSource())
-await resolver.addSource(FileConfigSource.userDefault)
-await resolver.addSource(MDMConfigSource()) // Enterprise MDM profiles
-let config = try await resolver.resolveConfiguration()
-```
-
-### Caching
-
-```swift
-let cache = ToolResultCache(policy: CachePolicy(maxEntries: 50, ttl: .seconds(300)))
-// Identical tool calls return cached results instantly
-```
-
-### Denial Tracking
-
-```swift
-let adaptiveGate = AdaptivePermissionGate(
-    gate: baseGate,
-    mode: .default,       // or .autoApprove, .alwaysPrompt, .planOnly
-    denialThreshold: 3    // Switch behavior after 3 consecutive denials
-)
-```
-
-### Multi-Agent Coordination
-
-```swift
-let phases = [
-    CoordinationPhase(name: "research", goal: "Research the topic",
-                      agentFactory: { try ResearchAgent(configuration: $0) }),
-    CoordinationPhase(name: "synthesize", goal: "Synthesize findings",
-                      dependencies: ["research"],
-                      agentFactory: { try SynthesisAgent(configuration: $0) }),
-]
-let result = try await CoordinationRunner.run(phases: phases, config: config)
-```
-
-Phases with satisfied dependencies run in parallel. Results stored in `TeamMemory` for downstream phases.
-
-### Plugin System
-
-```swift
-struct AuditPlugin: AgentPlugin {
-    let name = "audit"
-    let version = "1.0.0"
-
-    func activate(context: PluginContext) async throws {
-        await context.hookPipeline.add(AuditLoggingHook())
-        await context.guardrailPipeline?.add(ComplianceFilter())
-    }
-    func deactivate() async {}
-}
-
-let plugins = PluginManager()
-await plugins.register(AuditPlugin())
-await plugins.activateAll(context: pluginContext)
-```
-
-### Cost Tracking
-
-```swift
-let tracker = CostTracker()
-await tracker.setPricing(for: "claude-sonnet-4-20250514", pricing: ModelPricing(
-    inputCostPerMillionTokens: 3,
-    outputCostPerMillionTokens: 15
-))
-
-// Wire into telemetry — costs accumulate automatically
-let sink = CostTrackingTelemetrySink(tracker: tracker)
-let telemetry = CompositeTelemetrySink([sink, OSLogTelemetrySink()])
-
-// Query at any time
-let total = await tracker.totalCost()
-let byModel = await tracker.usageByModel()
-```
-
-### Rate Limiting
-
-```swift
-let rateLimitState = RateLimitState()
-
-try await AgentToolLoop.run(
-    client: client, config: config, goal: goal,
-    tools: tools, transcript: transcript,
-    rateLimitState: rateLimitState  // Rate-limit-aware retry
-)
-```
-
-Tracks cooldown state, parses Retry-After headers, jittered exponential backoff, separate from general retry logic.
-
-### System Prompt Composition
-
-```swift
-let builder = SystemPromptBuilder()
-await builder.addSection(SystemPromptSection(id: "role", content: "You are a support agent.", priority: 0))
-await builder.addDynamicSection(id: "context", priority: 100) { "Current time: \(Date())" }
-let systemPrompt = try await builder.build()
-```
-
-Tools can co-locate prompt instructions via `SystemPromptProvider` conformance.
-
-### Error Classification
-
-```swift
-let classified = classifyAPIError(error, model: "claude-sonnet-4-20250514")
-// classified.category: .auth, .quota, .rateLimit, .connectivity, .serverError, .badRequest, .unknown
-// classified.isRetryable: true/false
-```
-
-### Tool Result Truncation
-
-Oversized tool results are automatically truncated before entering the transcript, preserving the most recent output. Configurable via `TruncationPolicy`.
-
-### Agent Memory
-
-```swift
-let memory = FileMemoryStore()
-try await memory.save(MemoryEntry(category: .feedback, content: "User prefers terse responses"))
-let entries = try await memory.retrieve(category: .user, limit: 10)
-```
-
-Persistent cross-session memory with categories (`.user`, `.feedback`, `.project`, `.reference`), distinct from `TeamMemory` (coordination) and `SessionStore` (session snapshots).
-
-### Conversation Recovery
-
-```swift
-let (repaired, violations) = recoverTranscript(transcript.entries)
-// Repairs orphaned tool calls/results, validates sequence integrity
-```
-
-### VCR Testing
-
-```swift
-let store = FileFixtureStore(directoryPath: "Tests/Fixtures")
-let vcr = VCRClient(client: realClient, store: store, mode: .record) // or .replay
-// Use like any other AgentLLMClient — deterministic, no network calls in CI
-```
-
-### Graceful Shutdown
-
-```swift
-let registry = ShutdownRegistry()
-await registry.register(name: "mcp") { await mcpManager.disconnectAll() }
-await registry.register(name: "plugins") { await pluginManager.deactivateAll() }
-SignalHandler.install(registry: registry)
-```
-
-## Telemetry
-
-Structured event emission to any backend:
-
-```swift
-let telemetry = CompositeTelemetrySink([
-    OSLogTelemetrySink(),          // Unified logging
-    InMemoryTelemetrySink(),       // Testing
-    CostTrackingTelemetrySink(tracker: costTracker), // Cost accumulation
-])
-```
-
-12 event types: agent lifecycle, LLM calls (model, tokens, cache tokens, duration), tool calls, retries, budget exhaustion, guardrail triggers, context compaction, API error classification, plugin lifecycle.
+## Core Types
+
+| Type | Purpose |
+|------|---------|
+| `AgentStatus` | Agent lifecycle state (idle, running, paused, error, completed) |
+| `ObservableTranscript` | `@Observable` transcript for SwiftUI binding |
+| `AgentExecutable` | Protocol for `@SpecDrivenAgent` actors |
+| `AgentLifecycleError` | Lifecycle errors (emptyGoal, blockedByHook) |
+| `ToolProgressUpdate` | Progress updates from tool execution |
+| `TextFormat` | Output format enum (jsonSchema, text) |
+| `AgentGoalMetadata` | Compile-time validated goal parameters |
 
 ## SwiftUI Integration
 
@@ -441,7 +89,6 @@ let telemetry = CompositeTelemetrySink([
 |---------|---------|
 | [SwiftOpenResponsesDSL](https://github.com/RichNasz/SwiftOpenResponsesDSL) | LLM client, response types, transcript entries |
 | [SwiftLLMToolMacros](https://github.com/RichNasz/SwiftLLMToolMacros) | Tool definitions, JSON schema, `@LLMTool` macro |
-| [SwiftOpenSkills](https://github.com/RichNasz/SwiftOpenSkills) | Skills framework integration |
 | [swift-syntax](https://github.com/swiftlang/swift-syntax) | Macro implementation infrastructure |
 
 ## Spec-Driven Development

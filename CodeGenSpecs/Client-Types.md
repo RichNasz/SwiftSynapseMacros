@@ -3,11 +3,11 @@
 **Generates:**
 - `Sources/SwiftSynapseMacrosClient/AgentTool.swift`
 - `Sources/SwiftSynapseMacrosClient/TextFormat.swift`
-- `Sources/SwiftSynapseMacrosClient/SwiftSynapseError.swift`
 - `Sources/SwiftSynapseMacrosClient/Transcript.swift`
 - `Sources/SwiftSynapseMacrosClient/AgentStatus.swift`
-- `Sources/SwiftSynapseMacrosClient/AgentRuntime.swift`
+- `Sources/SwiftSynapseMacrosClient/AgentExecutable.swift`
 - `Sources/SwiftSynapseMacrosClient/AgentGoalMetadata.swift`
+- `Sources/SwiftSynapseMacrosClient/ToolProgressUpdate.swift`
 - `Sources/SwiftSynapseMacrosClient/Macros.swift`
 
 ## Overview
@@ -15,7 +15,9 @@
 The client target (`SwiftSynapseMacrosClient`) provides:
 1. `#externalMacro` declarations for all macros
 2. Re-exports of sibling packages via `@_exported import`
-3. Orchestration types used by generated macro code
+3. Core types used by generated macro code and SwiftSynapseUI
+
+Agent harness types (tool loop, hooks, permissions, recovery, etc.) live in the `SwiftSynapseHarness` package.
 
 ---
 
@@ -61,21 +63,6 @@ public enum TextFormat: Sendable {
 
 ---
 
-## SwiftSynapseError
-
-Error type for agent orchestration failures.
-
-```swift
-public enum SwiftSynapseError: Error, Sendable {
-    case agentNotConfigured    // Agent spec or configuration missing
-    case clientNotInjected     // LLMClient not set before calling run()
-}
-```
-
-**Dependencies:** None (stdlib only)
-
----
-
 ## ObservableTranscript
 
 `@Observable` class for SwiftUI binding of agent conversation state.
@@ -84,10 +71,11 @@ public enum SwiftSynapseError: Error, Sendable {
 import Observation
 
 @Observable
-public final class ObservableTranscript {
+public final class ObservableTranscript: @unchecked Sendable {
     public private(set) var entries: [TranscriptEntry] = []
     public private(set) var isStreaming: Bool = false
     public private(set) var streamingText: String = ""
+    public private(set) var toolProgress: [String: ToolProgressUpdate] = [:]
 
     public init()
 
@@ -95,7 +83,10 @@ public final class ObservableTranscript {
     public func append(_ entry: TranscriptEntry)
     public func setStreaming(_ streaming: Bool)
     public func appendDelta(_ text: String)
+    public func updateToolProgress(_ update: ToolProgressUpdate)
+    public func clearToolProgress(callId: String)
     public func reset()
+    public func restore(entries: [TranscriptEntry])
 }
 ```
 
@@ -107,9 +98,14 @@ public final class ObservableTranscript {
 | `append(_:)` | Appends a single entry |
 | `setStreaming(_:)` | Sets streaming flag; clears `streamingText` when `false` |
 | `appendDelta(_:)` | Appends text to `streamingText` |
+| `updateToolProgress(_:)` | Updates tool progress for a given call ID |
+| `clearToolProgress(callId:)` | Removes tool progress for a completed call |
 | `reset()` | Clears all state to initial values |
+| `restore(entries:)` | Restores transcript from saved entries |
 
-**Dependencies:** `Observation` framework, `TranscriptEntry`
+Note: `restore(from codableEntries:)` is provided as an extension in `SwiftSynapseHarness`.
+
+**Dependencies:** `Observation` framework, `TranscriptEntry`, `ToolProgressUpdate`
 
 ---
 
@@ -131,22 +127,45 @@ public enum AgentStatus: @unchecked Sendable {
 
 ---
 
-## AgentRuntime
+## AgentExecutable
 
-Runtime engine that executes the dynamic reasoning loop for `@SpecDrivenAgent` actors. The macro-generated `run(goal:)` method delegates to this type.
+Protocol that `@SpecDrivenAgent` actors implicitly conform to. Defines the contract between macro-generated code and user domain logic.
 
 ```swift
-public enum AgentRuntime {
-    public static func execute(
-        goal: String,
-        transcript: ObservableTranscript,
-        client: any LLMClient,
-        maxTurns: Int = 20
-    ) async throws -> Any
+public protocol AgentExecutable: Actor {
+    var _status: AgentStatus { get set }
+    var _transcript: ObservableTranscript { get set }
+    func execute(goal: String) async throws -> String
 }
 ```
 
-**Dependencies:** `ObservableTranscript`, `LLMClient`, `ResponseRequest`, `TranscriptEntry`
+Also includes `AgentLifecycleError` enum:
+- `.emptyGoal` — goal string was empty
+- `.blockedByHook(reason:)` — a hook blocked agent startup
+
+Note: The `agentRun()` function that uses this protocol lives in `SwiftSynapseHarness`.
+
+**Dependencies:** `AgentStatus`, `ObservableTranscript`
+
+---
+
+## ToolProgressUpdate
+
+A progress update emitted by a tool during execution.
+
+```swift
+public struct ToolProgressUpdate: Sendable {
+    public let callId: String
+    public let toolName: String
+    public let message: String
+    public let fractionComplete: Double?
+    public let metadata: [String: String]
+}
+```
+
+Note: The `ToolProgressDelegate` and `ProgressReportingTool` protocols live in `SwiftSynapseHarness`.
+
+**Dependencies:** None (Foundation only)
 
 ---
 
