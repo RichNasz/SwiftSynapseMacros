@@ -16,6 +16,10 @@ This directory contains the specifications that serve as the single source of tr
 | [Tests.md](Tests.md) | `Tests/SwiftSynapseMacrosTests/MacroExpansionTests.swift` |
 | [README-Generation.md](README-Generation.md) | `README.md` (root) |
 
+## SwiftSynapseUI
+
+SwiftSynapseUI (drop-in agent views) has moved to [SwiftSynapseHarness](https://github.com/RichNasz/SwiftSynapseHarness) (`CodeGenSpecs/UI.md`). Import `SwiftSynapseUI` from the `SwiftSynapseHarness` package.
+
 ## Infrastructure Files
 
 | File | Spec Source |

@@ -35,11 +35,7 @@ The agent harness (tool loop, hooks, permissions, streaming, recovery, MCP, etc.
    - `ToolProgressUpdate.swift` - Tool progress data type
    - `AgentTool.swift` - Deprecated tool bridging type
 
-3. **SwiftSynapseUI** (UI target) - SwiftUI views
-   - Drop-in agent views (chat, status, transcript, streaming)
-   - Depends on SwiftSynapseMacrosClient only (core types)
-
-4. **SwiftSynapseMacrosTests** (test target)
+3. **SwiftSynapseMacrosTests** (test target)
    - XCTest-based macro expansion tests (`assertMacroExpansion`)
 
 ### Key Design Decisions
@@ -79,14 +75,6 @@ Sources/
     AgentGoalMetadata.swift
     ToolProgressUpdate.swift
     AgentTool.swift
-  SwiftSynapseUI/                   # SwiftUI views
-    AgentChatView.swift
-    AgentStatusView.swift
-    TranscriptView.swift
-    StreamingTextView.swift
-    ToolCallDetailView.swift
-    ObservableAgent.swift
-    AgentAppIntent.swift
 Tests/
   SwiftSynapseMacrosTests/
     MacroExpansionTests.swift
