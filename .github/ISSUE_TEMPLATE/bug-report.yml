@@ -1,0 +1,59 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: >
+        Thank you for reporting a bug. Please fill out the fields below
+        so the maintainer can reproduce and address the issue.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Numbered steps to reproduce the behavior.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What should have happened instead?
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - macOS 27+
+        - iOS 27+
+        - visionOS 26+
+    validations:
+      required: true
+  - type: input
+    id: swift-version
+    attributes:
+      label: Swift Version
+      placeholder: "e.g., 6.4"
+    validations:
+      required: true
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Logs, screenshots, related issues, or anything else relevant.
+    validations:
+      required: false

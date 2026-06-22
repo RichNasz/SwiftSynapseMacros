@@ -2,116 +2,43 @@
 
 Thank you for your interest in contributing to SwiftSynapseMacros!
 
-## Getting Started
+This project uses **spec-driven development**. Markdown specification files are the single source of truth for all code — every `.swift` file is generated from specs, not written by hand. This workflow currently requires a single maintainer to perform spec-to-code generation, so direct code contributions (pull requests) are not accepted at this time.
 
-1. Fork the repository
-2. Clone your fork locally
-3. Create a new branch for your feature or bug fix
-4. Make your changes
-5. Run the tests: `swift test`
-6. Commit your changes using conventional commit format
-7. Push to your fork and submit a pull request
+The best way to contribute is by **opening an issue**.
 
-## Spec-First Workflow
+## How to Contribute
 
-This project follows a spec-driven development model. All `.swift` files are generated from specs in `CodeGenSpecs/`.
+### Report a Bug
 
-1. **Spec changes come first**: When adding or changing functionality, update the relevant spec in `CodeGenSpecs/` before modifying code.
-2. **AI generates code from specs**: AI reads the updated specs and generates the corresponding implementation. Specs are the authoritative source -- code is derived from them.
-3. **Never edit `.swift` files directly**: Every generated file has a header comment pointing to its source spec. Edit the spec, then re-generate.
-4. **Review cycle**: Spec review (are the requirements correct?), code generation (does the output match the spec?), test verification (`swift build && swift test` pass).
+If you've found a bug or unexpected behavior, [open a bug report](https://github.com/RichNasz/SwiftSynapseMacros/issues/new?template=bug-report.yml). A good bug report includes:
 
-When reviewing contributions, verify that spec changes accompany any behavioral code changes. A code change without a corresponding spec update should be questioned.
+- A clear description of what happened
+- Steps to reproduce the behavior
+- What you expected to happen instead
+- Your platform (macOS, iOS, visionOS) and Swift version
 
-## Development Setup
+### Request a Feature
 
-### Requirements
+Have an idea for a new capability or improvement? [Open a feature request](https://github.com/RichNasz/SwiftSynapseMacros/issues/new?template=feature-request.yml). Focus on the **use case** — describe the problem you're trying to solve, not just the solution you have in mind.
 
-- Swift 6.2+
-- macOS 26+
+## What Happens Next
 
-### Building
+The maintainer triages incoming issues, updates the relevant specs, generates code from those specs, and ships the changes. This is a solo-maintainer project — issues are addressed as time permits, with no guaranteed timeline.
 
-```bash
-swift build
-```
+## Why Not Pull Requests?
 
-### Testing
+All code in this project is generated from Markdown specs. A pull request that modifies `.swift` files directly would be overwritten the next time code is generated from specs, so code PRs cannot be merged.
 
-```bash
-swift test
-```
+This may evolve in the future as the project explores ways for the community to contribute to specs directly.
 
-## Commit Conventions
+## Security Vulnerabilities
 
-All commits must follow the [Conventional Commits](https://www.conventionalcommits.org/) format:
-
-```
-<type>(<scope>): <subject>
-```
-
-### Types
-
-| Type | Usage |
-|---|---|
-| `feat` | New feature or capability |
-| `fix` | Bug fix |
-| `test` | Adding or updating tests |
-| `docs` | Documentation changes |
-| `spec` | Spec file changes |
-| `refactor` | Code restructuring without behavior change |
-| `chore` | Build, dependencies, CI, tooling |
-
-### Scopes
-
-`agent`, `output`, `capability`, `types`, `plugin`, `tests`, `docs`, `specs`
-
-### Examples
-
-```
-feat(agent): add streaming support to @SpecDrivenAgent
-fix(output): correct type name extraction in @StructuredOutput
-test(agent): add expansion test for diagnostic on struct
-spec(agent): add streaming run method to spec
-docs(docs): update README installation section
-```
-
-## AI Attribution
-
-This project is human-led by [RichNasz](https://github.com/RichNasz), with [Claude Code](https://claude.ai/code) as the code generation tool. All AI-generated code is reviewed and approved by a human maintainer.
-
-Commits with AI-assisted code must include the following trailer:
-
-```
-Co-Authored-By: Claude <noreply@anthropic.com>
-```
-
-## Pull Request Standards
-
-PRs should:
-
-- Follow the conventional commit format for the title
-- Include a summary of changes (1-3 bullet points)
-- Have a test plan with checklist items
-- Pass all checks before requesting review
-
-### Review Checklist
-
-- [ ] `swift build` succeeds with no warnings
-- [ ] `swift test` passes all tests
-- [ ] New features have macro expansion tests
-- [ ] Conventional commit format used
-- [ ] Spec files updated if behavior changes
-- [ ] Documentation updated if public API changes
+Do not open a public issue for security vulnerabilities. See [SECURITY.md](SECURITY.md) for responsible disclosure instructions.
 
 ## Code of Conduct
 
 This project follows the Contributor Covenant. See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
-## Reporting Issues
-
-If you find a bug or have a feature request, please open a GitHub Issue.
-
 ## License
 
-By contributing, you agree that your contributions will be licensed under the Apache License 2.0.
+By participating in this project, you agree that any contributions will be licensed under the [Apache License 2.0](LICENSE).
